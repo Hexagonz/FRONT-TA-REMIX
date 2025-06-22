@@ -84,7 +84,7 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-    const data = await axios.post("/users", parsed.data, {
+    const data = await axios.put("/users", parsed.data, {
       headers: {
         Authorization: `Bearer ${token}`
       }

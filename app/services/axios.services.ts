@@ -1,7 +1,7 @@
 import Axios, { type AxiosInstance } from "axios";
 
 const axios: AxiosInstance = Axios.create({
-  baseURL: "http://localhost:3000/api/v1",
+  baseURL: "http://localhost:3003/api/v1",
   timeout: 1000,
 
 });
@@ -13,12 +13,9 @@ axios.interceptors.response.use(
 
     if (err.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-
-      // Coba refresh token
-      const res = await axios.post("/refresh"); // hanya trigger session update
+      const res = await axios.post("/refresh");
 
       if (res.status === 200) {
-        // Ulangi request lama
         return axios(originalRequest);
       }
     }

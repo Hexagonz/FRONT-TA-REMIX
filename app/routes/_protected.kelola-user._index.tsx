@@ -57,6 +57,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       {
         status: false,
         message: err.response?.data || "Terjadi kesalahan saat fetch user",
+        data: err.response?.data
       },
       { status: err.response?.status || 500 }
     );
@@ -139,29 +140,34 @@ export default function Index() {
       </div>
       <div className="w-[97%] bg-white h-max rounded-lg shadow-sm my-5 *:text-[#5D5D5D] ">
         <Table>
+          {(filteredUsers.length == 0 ? <TableCaption className="bg-transparent pb-2">Data tidak ditemukan</TableCaption> : null)}
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[120px] pl-10">Username</TableHead>
+              <TableHead className="w-[120px] text-left pl-10">Username</TableHead>
               <TableHead className="text-center">Name</TableHead>
-              <TableHead className="text-center ">role</TableHead>
-              <TableHead className="text-right pr-10">Action</TableHead>
+              <TableHead className="text-center">role</TableHead>
+              <TableHead className="text-center">Password</TableHead>
+              <TableHead className="text-center">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="*:text-center">
             {filteredUsers.map((user: any) => (
               <TableRow key={user.id}>
-                <TableCell className="flex justify-center items-center gap-x-2">
+                <TableCell className="flex justify-around items-center gap-x-2">
                   <Avatar>
                     <AvatarImage src="https://github.com/shadcn.png" />
                     <AvatarFallback>CN</AvatarFallback>
                   </Avatar>
                   {user.username}
                 </TableCell>
-                <TableCell>{user.name}</TableCell>
+                <TableCell className="text-center">{user.name}</TableCell>
                 <TableCell className="text-center">{user.role}</TableCell>
+                <TableCell className="text-center text-[12px]">{user.password}</TableCell>
                 <TableCell className="text-right  w-max *:w-8 *:h-8 *:mx-1">
-                  <Button className="bg-[#4F6FFF33] rounded hover:bg-[#4F6FFF] *:hover:text-white">
+                  <Button asChild className="bg-[#4F6FFF33] rounded hover:bg-[#4F6FFF] *:hover:text-white">
+                    <Link to={`/kelola-user/view/${user.id}`}>
                     <Eye className="text-[#4F6FFF] " />
+                    </Link>
                   </Button>
                   <Button
                     asChild

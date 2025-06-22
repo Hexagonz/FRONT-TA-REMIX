@@ -65,7 +65,7 @@ export default function Index() {
             <h1 className="text-[32px] font-bold text-[#484646]">
               Memantau aktivitas
               <br /> presensi secara
-              <span className="text-[#00BBA7]">real-time.</span>
+              <span className="text-[#00BBA7]"> real-time.</span>
             </h1>
             <p className="text-[#5D5D5D] text-[10px] font-bold">
               Presensi SMANTA – Sistem Presensi Digital SMA Negeri 3 Pontianak

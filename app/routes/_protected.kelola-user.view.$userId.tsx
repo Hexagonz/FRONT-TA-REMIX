@@ -1,3 +1,5 @@
+import { LoaderFunctionArgs } from "@remix-run/node";
+import { useLoaderData, useLocation } from "@remix-run/react";
 import { ArrowLeft } from "@mynaui/icons-react";
 import {
   Form,
@@ -9,7 +11,6 @@ import {
 import { z } from "zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
 import {
   FormField,
   FormItem,
@@ -19,7 +20,7 @@ import {
   Form as RemixForm,
 } from "~/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
 import { useEffect } from "react";
 import axios from "~/services/axios.services";
@@ -30,97 +31,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { sessionStorage } from "~/services/session.services";
 
-const addSchema = z
-  .object({
-    username: z
-      .string()
-      .min(8, { message: "Min 8 angka NISN" })
-      .regex(/^\d+$/, { message: "Hanya boleh angka" }),
-    name: z.string().min(4, { message: "Min 4 huruf nama" }),
-    role: z.enum(["siswa", "guru", "admin"], {
-      errorMap: () => ({ message: "Role wajib dipilih" }),
-    }),
-    password: z.string().min(8, { message: "Min 8 karakter password" }),
-    password_confirmation: z
-      .string()
-      .min(8, { message: "Min 8 karakter konfirmasi password" }),
-  })
-  .refine((data) => data.password === data.password_confirmation, {
-    path: ["password_confirmation"],
-    message: "Konfirmasi password tidak cocok",
+const addSchema = z.object({
+  username: z.string(),
+  name: z.string(),
+  role: z.enum(["siswa", "guru", "admin"]),
+  password: z.string(),
+  password_confirmation: z.string(),
+});
+
+export async function loader({ params, request }: LoaderFunctionArgs) {
+  const id = params.userId;
+  let session = await sessionStorage.getSession(request.headers.get("cookie"));
+  const token = session.get("access_token");
+  const { data } = await axios.get("/users/" + id, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
-
-export async function action({ request }: ActionFunctionArgs) {
-  const formData = await request.formData();
-
-  const rawData = {
-    username: formData.get("username"),
-    name: formData.get("name"),
-    role: formData.get("role"),
-    password: formData.get("password"),
-    password_confirmation: formData.get("password_confirmation"),
-  };
-
-  const parsed = addSchema.safeParse(rawData);
-
-  if (!parsed.success) {
-    return json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
-  }
-
-  try {
-    const data = await axios.post("/register", parsed.data);
-    console.log(data);
-    return redirect("/kelola-user" + "?success=1");
-  } catch (error: any) {
-    console.log(error.response?.data);
-    const detail = error.response?.data;
-    return json(
-      {
-        error: {
-          server: ["Gagal mengirim data ke backend"],
-        },
-        detail,
-      },
-      { status: 500 }
-    );
-  }
+  return { data };
 }
 
-export default function AddKelolaUser() {
-  const navigation = useNavigation();
-  const fetcher = useFetcher();
-  const actionData = useActionData<typeof action>();
-
-  const onSubmit = (data: z.infer<typeof addSchema>) => {
-    const formData = new FormData();
-    for (const key in data) {
-      formData.append(key, data[key as keyof typeof data]);
-    }
-
-    fetcher.submit(formData, { method: "post" });
-  };
-
-  useEffect(() => {
-    if (actionData?.error) {
-      for (const [key, messages] of Object.entries(actionData.error)) {
-        form.setError(key as any, {
-          type: "manual",
-          message: messages?.[0],
-        });
-      }
-    }
-  }, [actionData]);
+export default function ViewKelolaUser() {
+  const { data } = useLoaderData<typeof loader>();
 
   const form = useForm<z.infer<typeof addSchema>>({
     resolver: zodResolver(addSchema),
-    mode: "onSubmit",
     defaultValues: {
-      username: "",
-      name: "",
-      role: undefined,
-      password: "",
-      password_confirmation: "",
+      username: data.data.username,
+      name: data.data.name,
+      role: data.data.role,
+      password: data.data.password,
+      password_confirmation: data.data.password,
     },
   });
 
@@ -129,8 +72,7 @@ export default function AddKelolaUser() {
       <RemixForm {...form}>
         <form
           method="post"
-          className="bg-white space-y-5 w-[40%] px-4 rounded-xl shadow-md mt-5 pb-2"
-          onSubmit={form.handleSubmit(onSubmit)}
+          className="bg-white space-y-5 w-[40%] px-4 rounded-xl shadow-md mt-5 pb-14"
         >
           <div className="flex items-start pt-6 gap-x-20">
             <Link
@@ -140,7 +82,7 @@ export default function AddKelolaUser() {
               <ArrowLeft className="stroke-[2.5] hover:text-[#00BBA7]" />
             </Link>
             <h1 className="text-[#5D5D5D] font-bold text-center">
-              Tambah Data User
+              Lihat Data User
             </h1>
           </div>
           <FormField
@@ -154,15 +96,7 @@ export default function AddKelolaUser() {
                     {...field}
                     className="focus:border-[#25CAB8]"
                     type="text"
-                    inputMode="numeric"
-                    placeholder="NISN (Angka)"
-                    onInput={(e) => {
-                      e.currentTarget.value = e.currentTarget.value.replace(
-                        /[^0-9]/g,
-                        ""
-                      );
-                      field.onChange(e);
-                    }}
+                    disabled
                   />
                 </FormControl>
                 <FormMessage className="text-xs" />
@@ -181,13 +115,13 @@ export default function AddKelolaUser() {
                     className="focus:border-[#25CAB8]"
                     {...field}
                     placeholder="Nama lengkap"
+                    disabled
                   />
                 </FormControl>
                 <FormMessage className="text-xs" />
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="role"
@@ -197,6 +131,7 @@ export default function AddKelolaUser() {
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
+                  disabled
                 >
                   <FormControl className="focus:border-[#25CAB8]">
                     <SelectTrigger>
@@ -221,7 +156,12 @@ export default function AddKelolaUser() {
               <FormItem>
                 <FormLabel className="text-[#5D5D5D]">Password</FormLabel>
                 <FormControl>
-                  <Input type="password" {...field} placeholder="Password" />
+                  <Input
+                    type="password"
+                    {...field}
+                    placeholder="Password"
+                    disabled
+                  />
                 </FormControl>
                 <FormMessage className="text-xs" />
               </FormItem>
@@ -241,22 +181,13 @@ export default function AddKelolaUser() {
                     type="password"
                     {...field}
                     placeholder="Confirmation password"
+                    disabled
                   />
                 </FormControl>
                 <FormMessage className="text-xs" />
               </FormItem>
             )}
           />
-
-          <div className="flex justify-end">
-            <Button
-              type="submit"
-              className="bg-[#00BBA7] hover:bg-slate-100 hover:text-[#00BBA7] rounded-full"
-              disabled={navigation.state === "submitting"}
-            >
-              Simpan
-            </Button>
-          </div>
         </form>
       </RemixForm>
     </div>

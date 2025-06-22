@@ -3,11 +3,11 @@ export interface MynaIconsProps extends Omit<LucideProps, "ref"> {
   stroke?: string; // pastikan hanya string, bukan string | number
 }
 
-export interface ActionErrorData  {
+export interface ActionErrorData {
   error: {
     username?: string[];
     name?: string[];
     password?: string[];
     password_confirmation?: string[];
   };
-};
+}
