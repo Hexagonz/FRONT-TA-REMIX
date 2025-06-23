@@ -53,7 +53,7 @@ export async function action({ request }: ActionFunctionArgs) {
         ["Set-Cookie", await sessionStorage.commitSession(session)],
         [
           "Set-Cookie",
-          `refreshToken=${user.refresh_token}; HttpOnly; Secure; Path=/; SameSite=Strict; sMax-Age=604800;`,
+          `refreshToken=${user.refresh_token}; HttpOnly; Secure; Path=/; SameSite=Strict; Max-Age=3600;`,
         ],
       ],
     });

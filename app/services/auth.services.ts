@@ -61,7 +61,7 @@ export async function requireAuth({
         },
       });
       session.set("access_token", data.data.access_token);
-      session.set("refresh_token",refreshToken);
+      session.set("refresh_token", refreshToken);
 
       const originalResponse = await next();
       const newResponse = new Response(originalResponse.body, {
@@ -72,8 +72,9 @@ export async function requireAuth({
       newResponse.headers.append("Set-Cookie", await commitSession(session));
       newResponse.headers.append(
         "Set-Cookie",
-        `refreshToken=${refreshToken} HttpOnly; Secure; Path=/; SameSite=lax; Max-Age=0`
+        `refreshToken=${refreshToken}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age=3600;`
       );
+
       return newResponse;
     } catch {
       // Refresh gagal → logout
@@ -81,7 +82,7 @@ export async function requireAuth({
       headers.append("Set-Cookie", await destroySession(session));
       headers.append(
         "Set-Cookie",
-        "refreshToken=; HttpOnly; Secure; Path=/; SameSite=lax; Max-Age=0"
+        "refreshToken=; HttpOnly; Secure; Path=/; SameSite=lax; Max-Age=3600;"
       );
 
       const isJson = request.headers

@@ -11,3 +11,19 @@ export interface ActionErrorData {
     password_confirmation?: string[];
   };
 }
+
+interface Guru {
+  nama_guru: string;
+  nip: string;
+  id_mapel: number;
+}
+
+export type LoaderSuccess = {
+  status: true;
+  message: string;
+  data: {
+    list: Guru[];
+    detail: Guru;
+  };
+};
+

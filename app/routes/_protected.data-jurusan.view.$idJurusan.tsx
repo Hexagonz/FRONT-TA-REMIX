@@ -65,7 +65,7 @@ export default function AddMataPelajaran() {
           method="get"
           className="bg-white space-y-5 w-[40%] px-4 rounded-xl shadow-md mt-5 pb-8"
         >
-          <div className="flex items-start pt-6 gap-x-10">
+          <div className="flex items-start pt-6 gap-x-20">
             <Link
               to="/data-jurusan"
               className="h-min pl-1 items-center text-center *:text-[#5D5D5DAA] w-max  px-3   *:hover:cursor-pointer"

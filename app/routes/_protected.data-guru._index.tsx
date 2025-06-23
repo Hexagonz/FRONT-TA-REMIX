@@ -162,7 +162,7 @@ export default function Index() {
                 </TableCell>
                 <TableCell className="text-center">{guru.nip}</TableCell>
                 <TableCell className="text-center">{guru.mapel.nama_mapel}</TableCell>
-                <TableCell className="text-center text-[12px]">{guru.mapel.deskripsi}</TableCell>
+                <TableCell className="text-center ">{guru.mapel.deskripsi}</TableCell>
                 <TableCell className="text-right  w-max *:w-8 *:h-8 *:mx-1">
                   <Button asChild className="bg-[#4F6FFF33] rounded hover:bg-[#4F6FFF] *:hover:text-white">
                     <Link to={`/data-guru/view/${guru.id_guru}`}>

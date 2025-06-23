@@ -2,23 +2,21 @@ import {
   AcademicHat,
   Archive,
   Book,
+  Calendar,
   Home,
   Logout,
   Presentation,
   UsersGroup,
 } from "@mynaui/icons-react";
-import { json } from "@remix-run/node";
-import { Link, useLoaderData, useNavigate } from "@remix-run/react";
+import { Link, useNavigate } from "@remix-run/react";
 import { User } from "lucide-react";
-
 import AlertComponent from "~/components/ui/alert-component";
-
-
 
 export default function Sidebar({ pathNow }: { pathNow: string }) {
   const navigate = useNavigate();
   const menuItems = [
     { path: "/dashboard", label: "Dashboard", Icon: Home },
+    { path: "/kelola-jadwal", label: "Kelola Jadwal", Icon: Calendar },
     { path: "/data-siswa", label: "Data Siswa", Icon: UsersGroup },
     { path: "/data-guru", label: "Data Guru", Icon: Archive },
     { path: "/data-jurusan", label: "Data Jurusan", Icon: AcademicHat },
@@ -42,14 +40,14 @@ export default function Sidebar({ pathNow }: { pathNow: string }) {
               <Link
                 key={path}
                 to={path}
-                className={`w-11/12 py-[10px] rounded-[10px] flex items-center group hover:bg-[#00BBA7] hover:bg-opacity-10 ${
+                className={`w-11/12 py-[10px] rounded-[10px] flex items-start group hover:bg-[#00BBA7] hover:bg-opacity-10 ${
                   isActive ? "bg-[#00BBA7] bg-opacity-10" : ""
                 } ${
                   path.includes("/mata-pelajaran")
                     ? "pl-8"
                     : path.includes("/data-jurusan")
-                    ? "pl-6"
-                    : ""
+                    ? "pl-5"
+                    : path.includes("/kelola-jadwal") ? "pl-6" : ""
                 }`}
               >
                 <Icon
