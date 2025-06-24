@@ -4,6 +4,7 @@ import {
   Book,
   Calendar,
   Home,
+  HomeSmile,
   Logout,
   Presentation,
   UsersGroup,
@@ -12,17 +13,18 @@ import { Link, useNavigate } from "@remix-run/react";
 import { User } from "lucide-react";
 import AlertComponent from "~/components/ui/alert-component";
 
-export default function Sidebar({ pathNow }: { pathNow: string }) {
+export default function Sidebar({ pathNow, role }: { pathNow: string; role: string}) {
   const navigate = useNavigate();
   const menuItems = [
     { path: "/dashboard", label: "Dashboard", Icon: Home },
     { path: "/kelola-jadwal", label: "Kelola Jadwal", Icon: Calendar },
     { path: "/data-siswa", label: "Data Siswa", Icon: UsersGroup },
+    { path: "/data-ruangan", label: "Data Ruangan", Icon: HomeSmile },
     { path: "/data-guru", label: "Data Guru", Icon: Archive },
     { path: "/data-jurusan", label: "Data Jurusan", Icon: AcademicHat },
     { path: "/data-kelas", label: "Data Kelas", Icon: Presentation },
     { path: "/mata-pelajaran", label: "Mata Pelajaran", Icon: Book },
-    { path: "/kelola-user", label: "Kelola User", Icon: User },
+    ...(role == "super_admin" ? [{ path: "/kelola-user", label: "Kelola User", Icon: User }] : [])
   ];
 
 
@@ -33,7 +35,7 @@ export default function Sidebar({ pathNow }: { pathNow: string }) {
       </h1>
       <span className="block w-full h-[2px] bg-[#5D5D5D] bg-opacity-15"></span>
       <div className="flex flex-col h-[88dvh] justify-between">
-        <div className="text-[#00BBA7] flex flex-col space-y-2 mt-4 items-center *:pr-10 *:items-center *:flex *:justify-center *:gap-x-1">
+        <div className="text-[#00BBA7] flex flex-col space-y-2 mt-2 items-center *:pr-10 *:items-center *:flex *:justify-center *:gap-x-1">
           {menuItems.map(({ path, label, Icon }) => {
             const isActive = pathNow.includes(path) || pathNow.includes(`${path}/`);
             return (
@@ -45,9 +47,9 @@ export default function Sidebar({ pathNow }: { pathNow: string }) {
                 } ${
                   path.includes("/mata-pelajaran")
                     ? "pl-8"
-                    : path.includes("/data-jurusan")
+                    : path.includes("/data-jurusan") 
                     ? "pl-5"
-                    : path.includes("/kelola-jadwal") ? "pl-6" : ""
+                    : path.includes("/kelola-jadwal") ||  path.includes("/data-ruangan") ? "pl-6" : ""
                 }`}
               >
                 <Icon

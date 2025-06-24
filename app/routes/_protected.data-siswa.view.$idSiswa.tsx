@@ -34,45 +34,53 @@ import { AxiosError } from "axios";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { sessionStorage } from "~/services/session.services";
-import { LoaderSuccess } from "~/@types/type";
+import { LoaderKelasJurusan, LoaderSuccess } from "~/@types/type";
 
 const addSchema = z.object({
-  nama_guru: z.string(),
-  nip: z.string(),
-  id_mapel: z.coerce.number().int(),
+  nama_siswa: z
+    .string()
+    .min(3, { message: "Min 3 dan Max 60 huruf nama siswa" })
+    .max(60, { message: "Min 3 dan Max 60 huruf nama siswa" }),
+  nisn: z
+    .string()
+    .min(8, { message: "Min 8 dan Max 15 huruf NISN siswa" })
+    .max(15, { message: "Min 8 dan Max 15 huruf NISN siswa" }),
+  no_absen: z.coerce.number({ message: "No Absen harus angka" }).int(),
+  id_kelas: z.coerce.number({ message: "Kelas harus diisi" }).int(),
+  id_jurusan: z.coerce.number({ message: "Jurusan harus diisi" }).int(),
 });
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const id = params.idGuru;
+  const id = params.idSiswa;
   const cookie = request.headers.get("cookie");
   const session = await sessionStorage.getSession(cookie);
   const token = session.get("access_token");
 
-  if (!id) {
-    return json(
-      { status: false, message: "ID Guru tidak ditemukan" },
-      { status: 400 }
-    );
-  }
-
   try {
-    const { data: listMapel } = await axios.get("/mata-pelajaran", {
+    const { data: siswa } = await axios.get("/siswa/" + id, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    const { data: detailMapel } = await axios.get("/guru/" + id, {
+    const { data: listJurusan } = await axios.get("/jurusan", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const { data: listKelas } = await axios.get("/kelas", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
     return json({
       status: true,
-      message: "Berhasil mengambil data guru dan mapel",
+      message: "Berhasil mengambil data jurusan dan kelas",
       data: {
-        list: listMapel.data,
-        detail: detailMapel.data,
+        jurusan: listJurusan.data,
+        kelas: listKelas.data,
+        siswa: siswa.data,
       },
     });
   } catch (error) {
@@ -90,21 +98,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
-export default function ViewGuru() {
-  const data = useLoaderData<LoaderSuccess>();
+export default function ViewSiswa() {
+  const fetcher = useFetcher();
+  const data = useLoaderData<LoaderKelasJurusan>();
+
 
   const form = useForm<z.infer<typeof addSchema>>({
     resolver: zodResolver(addSchema),
     mode: "onSubmit",
     defaultValues: {
-      nama_guru: data.data.detail.nama_guru,
-      nip: data.data.detail.nip,
-      id_mapel: data.data.detail.id_mapel,
+      nama_siswa: data.data.siswa?.nama_siswa,
+      nisn: data.data.siswa?.nisn,
+      no_absen: data.data.siswa?.no_absen,
+      id_kelas: data.data.siswa?.id_kelas,
+      id_jurusan: data.data.siswa?.id_jurusan,
     },
   });
 
   return (
-    <div className="*:mx-2 flex justify-center items-center h-5/6">
+    <div className="*:mx-2 flex justify-center">
       <RemixForm {...form}>
         <form
           method="get"
@@ -112,18 +124,18 @@ export default function ViewGuru() {
         >
           <div className="flex items-start pt-6 gap-x-20">
             <Link
-              to="/data-guru"
+              to="/data-siswa"
               className="h-min pl-1 items-center text-center *:text-[#5D5D5DAA] w-max  px-3   *:hover:cursor-pointer"
             >
               <ArrowLeft className="stroke-[2.5] hover:text-[#00BBA7]" />
             </Link>
             <h1 className="text-[#5D5D5D] font-bold text-center">
-              View Data Guru
+              View Data siswa
             </h1>
           </div>
           <FormField
             control={form.control}
-            name="nama_guru"
+            name="nama_siswa"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-[#5D5D5D]">Nama </FormLabel>
@@ -132,6 +144,7 @@ export default function ViewGuru() {
                     {...field}
                     className="focus:border-[#25CAB8]"
                     type="text"
+                    placeholder="Nama siswa"
                     disabled
                   />
                 </FormControl>
@@ -142,16 +155,17 @@ export default function ViewGuru() {
 
           <FormField
             control={form.control}
-            name="nip"
+            name="nisn"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-[#5D5D5D]">
-                  Nomor Induk Pegawai
+                  Nomor Induk Siswa Nasional
                 </FormLabel>
                 <FormControl>
                   <Input
                     className="focus:border-[#25CAB8]"
                     {...field}
+                    inputMode="numeric"
                     disabled
                   />
                 </FormControl>
@@ -162,11 +176,39 @@ export default function ViewGuru() {
 
           <FormField
             control={form.control}
-            name="id_mapel"
+            name="no_absen"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-[#5D5D5D]">Mata Pelajaran</FormLabel>
-                <MataPelajaranSelect field={field} />
+                <FormLabel className="text-[#5D5D5D]">No Absen</FormLabel>
+                <Input
+                  {...field}
+                  className="focus:border-[#25CAB8]"
+                  type="number"
+                  placeholder="No Absen Siswa"
+                  disabled
+                />
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="id_kelas"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-[#5D5D5D]">Kelas</FormLabel>
+                <KelasSelect field={field} />
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="id_jurusan"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-[#5D5D5D]">Jurusan</FormLabel>
+                <JurusanSelect field={field} />
                 <FormMessage className="text-xs" />
               </FormItem>
             )}
@@ -177,20 +219,44 @@ export default function ViewGuru() {
   );
 }
 
-export function MataPelajaranSelect({ field }: { field: any }) {
-  const data = useLoaderData<LoaderSuccess>();
+export function JurusanSelect({ field }: { field: any }) {
+  const data = useLoaderData<LoaderKelasJurusan>();
 
   return (
-    <Select onValueChange={field.onChange} defaultValue={field.value} disabled>
+    <Select onValueChange={field.onChange} defaultValue={field.value.toString()} disabled>
       <FormControl className="focus:border-[#25CAB8]">
         <SelectTrigger>
-          <SelectValue placeholder="Pilih Mata Pelajaran" />
+          <SelectValue placeholder="Pilih Jurusan" />
         </SelectTrigger>
       </FormControl>
       <SelectContent>
-        {data.data.list.map((mapel: any) => (
-          <SelectItem key={mapel.id_mapel} value={mapel.id_mapel}>
-            {mapel.nama_mapel} - {mapel.deskripsi}
+        {data.data.jurusan.map((jurusan: any) => (
+          <SelectItem
+            key={jurusan.id_jurusan}
+            value={jurusan.id_jurusan.toString()}
+          >
+            {jurusan.nama_jurusan} - {jurusan.deskripsi}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+export function KelasSelect({ field }: { field: any }) {
+  const data = useLoaderData<LoaderKelasJurusan>();
+
+  return (
+    <Select onValueChange={field.onChange} defaultValue={field.value.toString()} disabled>
+      <FormControl className="focus:border-[#25CAB8]">
+        <SelectTrigger>
+          <SelectValue placeholder="Pilih Kelas" />
+        </SelectTrigger>
+      </FormControl>
+      <SelectContent>
+        {data.data.kelas.map((kelas: any) => (
+          <SelectItem key={kelas.id_kelas} value={kelas.id_kelas.toString()}>
+            {kelas.nama_kelas} - {kelas.kelas_romawi}
           </SelectItem>
         ))}
       </SelectContent>

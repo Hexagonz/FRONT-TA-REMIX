@@ -3,7 +3,6 @@ import {
   TableBody,
   TableCaption,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -45,6 +44,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       data,
     });
   } catch (error) {
+    console.log(error)
     const err = error as AxiosError;
 
     console.error(

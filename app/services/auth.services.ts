@@ -24,6 +24,7 @@ authenticator.use(
     return {
       access_token: data.data.accses_token,
       refresh_token: data.data.refresh_token,
+      role: data.data.role
     };
     // the type of this user must match the type you pass to the
     // Authenticator the strategy will automatically inherit the type if
@@ -39,61 +40,44 @@ export async function requireAuth({
   context,
   next,
 }: MiddlewareFunctionArgs) {
-  const cookieHeader = request.headers.get("cookie");
-  const session = await getSession(cookieHeader);
+  const session = await getSession(request.headers.get("cookie"));
   const accessToken = session.get("access_token");
-  const cookies = parse(cookieHeader || "");
+
+  const cookies = parse(request.headers.get("cookie") || "");
   const refreshToken = cookies.refreshToken;
+
+  if (!accessToken && !refreshToken) {
+    return redirect("/login");
+  }
+
   try {
-    // Verifikasi token
     await axios.post("/verify", null, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
-    return next();
+    return next(); 
   } catch {
     try {
-      // Refresh token
       const { data } = await axios.post("/refresh", null, {
-        headers: {
-          Authorization: `Bearer ${refreshToken}`,
-        },
+        headers: { Authorization: `Bearer ${refreshToken}` },
       });
       session.set("access_token", data.data.access_token);
-      session.set("refresh_token", refreshToken);
-
       const originalResponse = await next();
-      const newResponse = new Response(originalResponse.body, {
+      const updatedResponse = new Response(originalResponse.body, {
         status: originalResponse.status,
         headers: new Headers(originalResponse.headers),
       });
 
-      newResponse.headers.append("Set-Cookie", await commitSession(session));
-      newResponse.headers.append(
-        "Set-Cookie",
-        `refreshToken=${refreshToken}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age=3600;`
-      );
-
-      return newResponse;
+      updatedResponse.headers.set("Set-Cookie", await commitSession(session));
+      return updatedResponse;
     } catch {
-      // Refresh gagal → logout
       const headers = new Headers();
       headers.append("Set-Cookie", await destroySession(session));
       headers.append(
         "Set-Cookie",
-        "refreshToken=; HttpOnly; Secure; Path=/; SameSite=lax; Max-Age=3600;"
+        "refreshToken=; HttpOnly; Secure; Path=/; Max-Age=0; SameSite=Lax"
       );
-
-      const isJson = request.headers
-        .get("accept")
-        ?.includes("application/json");
-
-      if (isJson) {
-        return json({ error: "Unauthorized" }, { status: 401, headers });
-      }
-
       return redirect("/login", { headers });
     }
   }
 }
+

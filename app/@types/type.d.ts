@@ -27,3 +27,30 @@ export type LoaderSuccess = {
   };
 };
 
+interface kelas {
+  nama_kelas: string;
+  nama_romawi: string;
+}
+
+interface Jurusan {
+  nama_jurusan: string;
+  nama_deskripsi: string;
+}
+
+interface Siswa {
+  nama_siswa: string;
+  nisn: string;
+  no_absen: number;
+  id_kelas: number;
+  id_jurusan: number;
+}
+export type LoaderKelasJurusan = {
+  status: true;
+  message: string;
+  data: {
+    kelas: Kelas[];
+    jurusan: Jurusan[];
+    siswa?: Siswa
+  };
+};
+

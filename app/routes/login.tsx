@@ -24,6 +24,7 @@ import { sessionStorage } from "~/services/session.services";
 import { ActionFunctionArgs } from "@remix-run/node";
 import { authenticator } from "~/services/auth.services";
 import axios from "axios";
+import { useState } from "react";
 
 export const meta: MetaFunction = () => {
   return [{ title: "Login | Presenta" }];
@@ -41,13 +42,13 @@ const formSchema = z.object({
 export async function action({ request }: ActionFunctionArgs) {
   try {
     const user = await authenticator.authenticate("user-pass", request);
-    const { access_token, refresh_token } = user;
+    const { access_token, refresh_token, role } = user;
     let session = await sessionStorage.getSession(
       request.headers.get("cookie")
     );
     session.set("access_token", access_token);
     session.set("refresh_token", refresh_token);
-
+    session.set("role", role);
     return redirect("/dashboard", {
       headers: [
         ["Set-Cookie", await sessionStorage.commitSession(session)],
@@ -58,6 +59,7 @@ export async function action({ request }: ActionFunctionArgs) {
       ],
     });
   } catch (error: any) {
+    console.log(error)
     if (axios.isAxiosError(error)) {
       const serverResponse = error.response?.data;
       return json(
@@ -77,7 +79,6 @@ export async function loader({ request }: ActionFunctionArgs) {
 }
 
 export default function Index() {
-  const data = useActionData<typeof action>();
   return (
     <main className="bg-gradient-to-t from-teal-200 to-teal-500 w-full h-dvh flex items-center justify-center">
       <div className="box w-[55%] h-3/4 bg-white shadow-lg rounded-[5px] flex">
@@ -111,7 +112,6 @@ export function ProfileForm() {
       password: "",
     },
   });
-
   return (
     <FormProvider {...form}>
       <h1 className="text-[#25CAB8] font-bold text-[25px] mb-2 font-inter">
@@ -157,7 +157,7 @@ export function ProfileForm() {
           style={{ marginTop: "8px" }}
         >
           <div className="flex items-center gap-x-2">
-            <Checkbox className="accent-[#25CAB8]" />
+            {/* <Checkbox className="accent-[#25CAB8]" /> */}
             <p className="text-gray-400 text-[12px]">Remember me</p>
           </div>
           <a href="#" className="underline text-[#25CAB8] text-[12px]">

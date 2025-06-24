@@ -34,51 +34,45 @@ import { AxiosError } from "axios";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { sessionStorage } from "~/services/session.services";
-import { LoaderSuccess } from "~/@types/type";
+import { LoaderKelasJurusan, LoaderSuccess } from "~/@types/type";
 
 const addSchema = z.object({
-  nama_guru: z
+  nama_siswa: z
     .string()
-    .min(3, { message: "Min 3 dan Max 60 huruf nama guru" })
-    .max(60, { message: "Min 3 dan Max 60 huruf nama guru" }),
-  nip: z
+    .min(3, { message: "Min 3 dan Max 60 huruf nama siswa" })
+    .max(60, { message: "Min 3 dan Max 60 huruf nama siswa" }),
+  nisn: z
     .string()
-    .min(8, { message: "Min 8 dan Max 15 huruf NIP guru" })
-    .max(15, { message: "Min 8 dan Max 15 huruf NIP guru" }),
-  id_mapel: z.coerce.number({ message: "Mata pelajaran harus angka" }).int(),
+    .min(8, { message: "Min 8 dan Max 15 huruf NISN siswa" })
+    .max(15, { message: "Min 8 dan Max 15 huruf NISN siswa" }),
+  no_absen: z.coerce.number({ message: "No Absen harus angka" }).int(),
+  id_kelas: z.coerce.number({ message: "Kelas harus diisi" }).int(),
+  id_jurusan: z.coerce.number({ message: "Jurusan harus diisi" }).int(),
 });
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
-  const id = params.idGuru;
+export async function loader({ request }: LoaderFunctionArgs) {
   const cookie = request.headers.get("cookie");
   const session = await sessionStorage.getSession(cookie);
   const token = session.get("access_token");
 
-  if (!id) {
-    return json(
-      { status: false, message: "ID Guru tidak ditemukan" },
-      { status: 400 }
-    );
-  }
-
   try {
-    const { data: listMapel } = await axios.get("/mata-pelajaran", {
+    const { data: listJurusan } = await axios.get("/jurusan", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    const { data: detailMapel } = await axios.get("/guru/" + id, {
+    const { data: listKelas } = await axios.get("/kelas", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
     return json({
       status: true,
-      message: "Berhasil mengambil data guru dan mapel",
+      message: "Berhasil mengambil data jurusan dan kelas",
       data: {
-        list: listMapel.data,
-        detail: detailMapel.data,
+        jurusan: listJurusan.data,
+        kelas: listKelas.data,
       },
     });
   } catch (error) {
@@ -96,13 +90,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const id = params.idGuru;
   const rawData = {
-    nama_guru: formData.get("nama_guru"),
-    nip: formData.get("nip"),
-    id_mapel: formData.get("id_mapel"),
+    nama_siswa: formData.get("nama_siswa"),
+    nisn: formData.get("nisn"),
+    no_absen: formData.get("no_absen"),
+    id_kelas: formData.get("id_kelas"),
+    id_jurusan: formData.get("id_jurusan"),
   };
 
   const parsed = addSchema.safeParse(rawData);
@@ -116,13 +111,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
       request.headers.get("cookie")
     );
     const token = session.get("access_token");
-    const { data } = await axios.put("/guru/" + id, parsed.data, {
+    const { data } = await axios.post("/siswa", parsed.data, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
     console.log(data);
-    return redirect("/data-guru" + "?success=2");
+    return redirect("/data-siswa" + "?success=1");
   } catch (error: any) {
     console.log(error.response?.data);
     const detail = error.response?.data;
@@ -138,11 +133,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 }
 
-export default function EditGuru() {
+export default function AddSiswa() {
   const navigation = useNavigation();
   const fetcher = useFetcher();
   const actionData = useActionData<typeof action>();
-  const data = useLoaderData<LoaderSuccess>();
   const onSubmit = (data: z.infer<typeof addSchema>) => {
     const formData = new FormData();
 
@@ -174,9 +168,11 @@ export default function EditGuru() {
     resolver: zodResolver(addSchema),
     mode: "onSubmit",
     defaultValues: {
-      nama_guru: data.data.detail.nama_guru,
-      nip: data.data.detail.nip,
-      id_mapel: data.data.detail.id_mapel,
+      nama_siswa: "",
+      nisn: "",
+      no_absen: undefined,
+      id_kelas: undefined,
+      id_jurusan: undefined,
     },
   });
 
@@ -190,18 +186,18 @@ export default function EditGuru() {
         >
           <div className="flex items-start pt-6 gap-x-20">
             <Link
-              to="/data-guru"
+              to="/data-siswa"
               className="h-min pl-1 items-center text-center *:text-[#5D5D5DAA] w-max  px-3   *:hover:cursor-pointer"
             >
               <ArrowLeft className="stroke-[2.5] hover:text-[#00BBA7]" />
             </Link>
             <h1 className="text-[#5D5D5D] font-bold text-center">
-              Edit Data Guru
+              Tambah Data siswa
             </h1>
           </div>
           <FormField
             control={form.control}
-            name="nama_guru"
+            name="nama_siswa"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-[#5D5D5D]">Nama </FormLabel>
@@ -210,7 +206,7 @@ export default function EditGuru() {
                     {...field}
                     className="focus:border-[#25CAB8]"
                     type="text"
-                    placeholder="Nama Guru"
+                    placeholder="Nama siswa"
                   />
                 </FormControl>
                 <FormMessage className="text-xs" />
@@ -220,18 +216,18 @@ export default function EditGuru() {
 
           <FormField
             control={form.control}
-            name="nip"
+            name="nisn"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-[#5D5D5D]">
-                  Nomor Induk Pegawai
+                  Nomor Induk Siswa Nasional
                 </FormLabel>
                 <FormControl>
                   <Input
                     className="focus:border-[#25CAB8]"
                     {...field}
                     inputMode="numeric"
-                    placeholder="NIP (Angka)"
+                    placeholder="NISN (Angka)"
                     onInput={(e) => {
                       e.currentTarget.value = e.currentTarget.value.replace(
                         /[^0-9]/g,
@@ -248,11 +244,38 @@ export default function EditGuru() {
 
           <FormField
             control={form.control}
-            name="id_mapel"
+            name="no_absen"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-[#5D5D5D]">Mata Pelajaran</FormLabel>
-                <MataPelajaranSelect field={field} />
+                <FormLabel className="text-[#5D5D5D]">No Absen</FormLabel>
+                <Input
+                  {...field}
+                  className="focus:border-[#25CAB8]"
+                  type="number"
+                  placeholder="No Absen Siswa"
+                />
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="id_kelas"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-[#5D5D5D]">Kelas</FormLabel>
+                <KelasSelect field={field} />
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="id_jurusan"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-[#5D5D5D]">Jurusan</FormLabel>
+                <JurusanSelect field={field} />
                 <FormMessage className="text-xs" />
               </FormItem>
             )}
@@ -273,20 +296,44 @@ export default function EditGuru() {
   );
 }
 
-export function MataPelajaranSelect({ field }: { field: any }) {
-  const data = useLoaderData<LoaderSuccess>();
+export function JurusanSelect({ field }: { field: any }) {
+  const data = useLoaderData<LoaderKelasJurusan>();
 
   return (
-    <Select onValueChange={field.onChange} defaultValue={field.value.toString()}>
+    <Select onValueChange={field.onChange} defaultValue={field.value}>
       <FormControl className="focus:border-[#25CAB8]">
         <SelectTrigger>
-          <SelectValue placeholder="Pilih Mata Pelajaran" />
+          <SelectValue placeholder="Pilih Jurusan" />
         </SelectTrigger>
       </FormControl>
       <SelectContent>
-        {data.data.list.map((mapel: any) => (
-          <SelectItem key={mapel.id_mapel} value={mapel.id_mapel.toString()}>
-            {mapel.nama_mapel} - {mapel.deskripsi}
+        {data.data.jurusan.map((jurusan: any) => (
+          <SelectItem
+            key={jurusan.id_jurusan}
+            value={jurusan.id_jurusan.toString()}
+          >
+            {jurusan.nama_jurusan} - {jurusan.deskripsi}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+export function KelasSelect({ field }: { field: any }) {
+  const data = useLoaderData<LoaderKelasJurusan>();
+
+  return (
+    <Select onValueChange={field.onChange} defaultValue={field.value}>
+      <FormControl className="focus:border-[#25CAB8]">
+        <SelectTrigger>
+          <SelectValue placeholder="Pilih Kelas" />
+        </SelectTrigger>
+      </FormControl>
+      <SelectContent>
+        {data.data.kelas.map((kelas: any) => (
+          <SelectItem key={kelas.id_kelas} value={kelas.id_kelas.toString()}>
+            {kelas.nama_kelas} - {kelas.kelas_romawi}
           </SelectItem>
         ))}
       </SelectContent>

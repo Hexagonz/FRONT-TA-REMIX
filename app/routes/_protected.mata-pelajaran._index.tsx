@@ -41,7 +41,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
 
     return json({
-      token,
       data,
     });
   } catch (error) {

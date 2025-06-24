@@ -127,7 +127,7 @@ export default function Index() {
           <p className="text-sm">Search: </p>
           <Input
             className="bg-white rounded-none w-60"
-            placeholder="Search"
+            placeholder="Cari Nama Guru"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
