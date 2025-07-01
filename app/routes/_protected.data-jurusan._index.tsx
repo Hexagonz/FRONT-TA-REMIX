@@ -22,12 +22,13 @@ import {
   useNavigate,
 } from "@remix-run/react";
 import { json, LoaderFunctionArgs } from "@remix-run/node";
-import axios from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import { sessionStorage } from "~/services/session.services";
 import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { Bounce, toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { PaginationControls } from "~/components/ui/pagination-controls";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   let session = await sessionStorage.getSession(request.headers.get("cookie"));
@@ -45,6 +46,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       data,
     });
   } catch (error) {
+    console.log(error);
     const err = error as AxiosError;
 
     console.error(
@@ -72,11 +74,18 @@ export default function Index() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const filteredjurusans = data.data.filter((jurusan: any) =>
     [jurusan.nama_jurusan, jurusan.deskripsi].some((value) =>
-      value.toLowerCase().includes(searchTerm.toLowerCase())
+      value.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
+
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const currentData = filteredjurusans.slice(startIndex, endIndex);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -127,14 +136,14 @@ export default function Index() {
           <p className="text-sm">Search: </p>
           <Input
             className="bg-white rounded-none w-60"
-            placeholder="Search"
+            placeholder="Cari Jurusan"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <Link to="/data-jurusan/add">
           <Button className="mr-4 bg-[#00BBA7] hover:bg-[#00BBA7AA] *:font-bold">
-            <Plus className="stroke-[2.5]" /> Tambah Data jurusan
+            <Plus className="stroke-[2.5]" /> Tambah Data Jurusan
           </Button>
         </Link>
       </div>
@@ -157,7 +166,7 @@ export default function Index() {
             </TableRow>
           </TableHeader>
           <TableBody className="*:text-center">
-            {filteredjurusans.map((jurusan: any) => (
+            {currentData.map((jurusan: any) => (
               <TableRow key={jurusan.id_jurusan}>
                 <TableCell className="text-center flex justify-center items-center">
                   <Avatar>
@@ -200,6 +209,13 @@ export default function Index() {
           </TableBody>
         </Table>
       </div>
+      <PaginationControls
+        totalItems={filteredjurusans.length}
+        rowsPerPage={rowsPerPage}
+        currentPage={currentPage}
+        setRowsPerPage={setRowsPerPage}
+        setCurrentPage={setCurrentPage}
+      />
       <ToastContainer />
     </div>
   );

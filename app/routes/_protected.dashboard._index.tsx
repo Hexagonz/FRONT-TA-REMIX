@@ -1,16 +1,63 @@
+// app/routes/dashboard.tsx
+
 import {
   ArrowLongRight,
   HomeSmile,
   User,
   UsersGroup,
 } from "@mynaui/icons-react";
-import { Link } from "@remix-run/react";
+import { LoaderFunctionArgs, json, redirect } from "@remix-run/node"; // Import redirect
+import { Link, useLoaderData } from "@remix-run/react";
+import { AxiosError } from "axios";
 import React from "react";
+import { Guru, RuangKelas, Siswa } from "~/@types/type";
 import { Calendar } from "~/components/ui/calendar";
 import Navbar from "~/components/ui/navbar";
+import { axios } from "~/services/axios.services"; // Pastikan axios ini memiliki baseURL untuk server
+import { sessionStorage } from "~/services/session.services";
 import logo from "~/src/img/sma.png";
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const session = await sessionStorage.getSession(
+    request.headers.get("cookie")
+  );
+  const token = session.get("access_token");
+  console.log(token);
+  // 🛡️ Langkah 1: Proteksi Rute dan Validasi Token
+  // Jika tidak ada token, sesi tidak valid. Paksa kembali ke login.
+  const headers = { Authorization: `Bearer ${token}` };
+
+  try {
+    const [siswaRes, ruangRes, guruRes] = await Promise.all([
+      axios.get("/siswa", { headers }),
+      axios.get("/ruang-kelas", { headers }),
+      axios.get("/guru", { headers }),
+    ]);
+    const siswa: Siswa[] = siswaRes.data.data || [];
+    const ruang: RuangKelas[] = ruangRes.data.data || [];
+    const guru: Guru[] = guruRes.data.data || [];
+
+    return json({ siswa, guru, ruang });
+  } catch (error) {
+    const err = error as AxiosError;
+    // 💡 Langkah 3: Penanganan Kesalahan yang Lebih Baik
+    // Jika error adalah 401 atau 403, berarti token tidak valid/kadaluwarsa.
+    // Redirect ke login untuk otentikasi ulang.
+    // Untuk kesalahan lain, log dan kembalikan data kosong agar UI tidak rusak.
+    console.error("Gagal mengambil data dasbor:", err.message);
+    return json({ siswa: [], guru: [], ruang: [], error: err.message });
+  }
+}
+
+// Komponen Index() Anda tetap sama, tidak perlu diubah.
 export default function Index() {
   const [date, setDate] = React.useState<Date | undefined>(new Date());
+  const data = useLoaderData<typeof loader>();
+
+  // Tambahkan penanganan jika data null atau undefined untuk keamanan
+  const siswaCount = data?.siswa?.length || 0;
+  const guruCount = data?.guru?.length || 0;
+  const ruangCount = data?.ruang?.length || 0;
 
   return (
     <div className="*:mx-2">
@@ -22,7 +69,7 @@ export default function Index() {
               <User className="rounded-full text-[#4F6FFF] absolute z-10 mx" />
             </div>
             <div className="*:font-bold *:text-[#5D5D5D]">
-              <h1 className="text-base">100</h1>
+              <h1 className="text-base">{siswaCount}</h1>
               <p className="text-xs">Siswa</p>
             </div>
           </div>
@@ -33,7 +80,7 @@ export default function Index() {
               <UsersGroup className="rounded-full text-[#8E51FF] absolute z-10 mx" />
             </div>
             <div className="*:font-bold *:text-[#5D5D5D]">
-              <h1 className="text-base">20</h1>
+              <h1 className="text-base">{guruCount}</h1>
               <p className="text-xs">Guru</p>
             </div>
           </div>
@@ -44,7 +91,7 @@ export default function Index() {
               <HomeSmile className="rounded-full text-[#E7000B] absolute z-10 mx" />
             </div>
             <div className="*:font-bold *:text-[#5D5D5D]">
-              <h1 className="text-base">2</h1>
+              <h1 className="text-base">{ruangCount}</h1>
               <p className="text-xs">Ruang Kelas</p>
             </div>
           </div>
@@ -70,13 +117,13 @@ export default function Index() {
             <p className="text-[#5D5D5D] text-[10px] font-bold">
               Presensi SMANTA – Sistem Presensi Digital SMA Negeri 3 Pontianak
             </p>
-              <Link
-                to="#"
-                className="flex items-center gap-x-2 underline text-[10px] text-[#00BBA7] font-bold my-5"
-              >
-                Baca Selengkapnya
-                <ArrowLongRight className="text-[#00BBA7] w-4 h-4"/>
-              </Link>
+            <Link
+              to="#"
+              className="flex items-center gap-x-2 underline text-[10px] text-[#00BBA7] font-bold my-5"
+            >
+              Baca Selengkapnya
+              <ArrowLongRight className="text-[#00BBA7] w-4 h-4" />
+            </Link>
           </div>
           <div className="bg-[#25CAB8] rounded-full bg-opacity-40">
             <img src={logo} alt="sma" className="w-72 h-72" />

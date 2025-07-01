@@ -21,12 +21,13 @@ import {
   useNavigate,
 } from "@remix-run/react";
 import { json, LoaderFunctionArgs } from "@remix-run/node";
-import axios from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import { sessionStorage } from "~/services/session.services";
 import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { Bounce, toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { PaginationControls } from "~/components/ui/pagination-controls";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   let session = await sessionStorage.getSession(request.headers.get("cookie"));
@@ -44,7 +45,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       data,
     });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     const err = error as AxiosError;
 
     console.error(
@@ -57,7 +58,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       {
         status: false,
         message: err.response?.data || "Terjadi kesalahan saat fetch user",
-        data: err.response?.data
+        data: err.response?.data,
       },
       { status: err.response?.status || 500 }
     );
@@ -72,11 +73,18 @@ export default function Index() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+
   const filteredUsers = data.data.filter((user: any) =>
     [user.username, user.name, user.role].some((value) =>
       value.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
+
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const currentData = filteredUsers.slice(startIndex, endIndex);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -106,6 +114,10 @@ export default function Index() {
     }
   }, [location]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   const handleDelete = async (id: string) => {
     try {
       await axios.delete(`/users/${id}`, {
@@ -120,14 +132,14 @@ export default function Index() {
     }
   };
   return (
-    <div className="*:mx-2">
+    <div className="*:mx-2 py-2">
       <Navbar title="Kelola Data User" />
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-x-4 text-[#5D5D5D] pt-2">
           <p className="text-sm">Search: </p>
           <Input
             className="bg-white rounded-none w-60"
-            placeholder="Search"
+            placeholder="Cari User"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -140,10 +152,16 @@ export default function Index() {
       </div>
       <div className="w-[97%] bg-white h-max rounded-lg shadow-sm my-5 *:text-[#5D5D5D] ">
         <Table>
-          {(filteredUsers.length == 0 ? <TableCaption className="bg-transparent pb-2">Data tidak ditemukan</TableCaption> : null)}
+          {filteredUsers.length == 0 ? (
+            <TableCaption className="bg-transparent pb-2">
+              Data tidak ditemukan
+            </TableCaption>
+          ) : null}
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[120px] text-left pl-10">Username</TableHead>
+              <TableHead className="w-[120px] text-left pl-10">
+                Username
+              </TableHead>
               <TableHead className="text-center">Name</TableHead>
               <TableHead className="text-center">role</TableHead>
               <TableHead className="text-center">Password</TableHead>
@@ -151,7 +169,7 @@ export default function Index() {
             </TableRow>
           </TableHeader>
           <TableBody className="*:text-center">
-            {filteredUsers.map((user: any) => (
+            {currentData.map((user: any) => (
               <TableRow key={user.id}>
                 <TableCell className="flex justify-around items-center gap-x-2">
                   <Avatar>
@@ -162,11 +180,16 @@ export default function Index() {
                 </TableCell>
                 <TableCell className="text-center">{user.name}</TableCell>
                 <TableCell className="text-center">{user.role}</TableCell>
-                <TableCell className="text-center text-[12px]">{user.password}</TableCell>
+                <TableCell className="text-center text-[12px]">
+                  {user.password}
+                </TableCell>
                 <TableCell className="text-right  w-max *:w-8 *:h-8 *:mx-1">
-                  <Button asChild className="bg-[#4F6FFF33] rounded hover:bg-[#4F6FFF] *:hover:text-white">
+                  <Button
+                    asChild
+                    className="bg-[#4F6FFF33] rounded hover:bg-[#4F6FFF] *:hover:text-white"
+                  >
                     <Link to={`/kelola-user/view/${user.id}`}>
-                    <Eye className="text-[#4F6FFF] " />
+                      <Eye className="text-[#4F6FFF] " />
                     </Link>
                   </Button>
                   <Button
@@ -191,6 +214,13 @@ export default function Index() {
           </TableBody>
         </Table>
       </div>
+      <PaginationControls
+        totalItems={filteredUsers.length}
+        rowsPerPage={rowsPerPage}
+        currentPage={currentPage}
+        setRowsPerPage={setRowsPerPage}
+        setCurrentPage={setCurrentPage}
+      />
       <ToastContainer />
     </div>
   );

@@ -23,7 +23,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
 import { useEffect } from "react";
-import axios from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import {
   Select,
   SelectContent,

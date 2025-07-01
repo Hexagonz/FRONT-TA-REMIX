@@ -22,12 +22,13 @@ import {
   useNavigate,
 } from "@remix-run/react";
 import { json, LoaderFunctionArgs } from "@remix-run/node";
-import axios from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import { sessionStorage } from "~/services/session.services";
 import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { Bounce, toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { PaginationControls } from "~/components/ui/pagination-controls";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   let session = await sessionStorage.getSession(request.headers.get("cookie"));
@@ -45,6 +46,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       data,
     });
   } catch (error) {
+    console.log(error);
     const err = error as AxiosError;
 
     console.error(
@@ -57,7 +59,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       {
         status: false,
         message: err.response?.data || "Terjadi kesalahan saat fetch kelas",
-        data: err.response?.data
+        data: err.response?.data,
       },
       { status: err.response?.status || 500 }
     );
@@ -72,12 +74,17 @@ export default function Index() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const filteredkelass = data.data.filter((kelas: any) =>
-    [kelas.nama_kelas, kelas.kelas_romawi].some((value) =>
-      value.toLowerCase().includes(searchTerm.toLowerCase())
+    [kelas.nama_kelas, kelas.kelas_romaw].some((value) =>
+      value.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
 
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const currentData = filteredkelass.slice(startIndex, endIndex);
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const data = params.get("success");
@@ -127,7 +134,7 @@ export default function Index() {
           <p className="text-sm">Search: </p>
           <Input
             className="bg-white rounded-none w-60"
-            placeholder="Search"
+            placeholder="Cari Kelas"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -140,28 +147,43 @@ export default function Index() {
       </div>
       <div className="w-[97%] bg-white h-max rounded-lg shadow-sm my-5 *:text-[#5D5D5D] ">
         <Table>
-          {(filteredkelass.length == 0 ? <TableCaption className="bg-transparent pb-2">Data tidak ditemukan</TableCaption> : null)}
+          {filteredkelass.length == 0 ? (
+            <TableCaption className="bg-transparent pb-2">
+              Data tidak ditemukan
+            </TableCaption>
+          ) : null}
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[190px] text-center">Nama Kelas</TableHead>
-              <TableHead className="w-[600px] text-center">Kelas Romawi</TableHead>
+              <TableHead className="w-[190px] text-center">
+                Nama Kelas
+              </TableHead>
+              <TableHead className="w-[600px] text-center">
+                Kelas Romawi
+              </TableHead>
               <TableHead className="text-right pr-12">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="*:text-center">
-            {filteredkelass.map((kelas: any) => (
+            {currentData.map((kelas: any) => (
               <TableRow key={kelas.id_kelas}>
                 <TableCell className="flex justify-center items-center gap-x-2">
                   <Avatar>
-                    <AvatarFallback className="font-bold text-[#00BBA7]">{kelas.kelas_romawi}</AvatarFallback>
+                    <AvatarFallback className="font-bold text-[#00BBA7]">
+                      {kelas.kelas_romawi}
+                    </AvatarFallback>
                   </Avatar>
                   Kelas {kelas.nama_kelas}
                 </TableCell>
-                <TableCell className="text-center">{kelas.kelas_romawi}</TableCell>
+                <TableCell className="text-center">
+                  {kelas.kelas_romawi}
+                </TableCell>
                 <TableCell className="text-right  w-max *:w-8 *:h-8 *:mx-1">
-                  <Button asChild className="bg-[#4F6FFF33] rounded hover:bg-[#4F6FFF] *:hover:text-white">
+                  <Button
+                    asChild
+                    className="bg-[#4F6FFF33] rounded hover:bg-[#4F6FFF] *:hover:text-white"
+                  >
                     <Link to={`/data-kelas/view/${kelas.id_kelas}`}>
-                    <Eye className="text-[#4F6FFF] " />
+                      <Eye className="text-[#4F6FFF] " />
                     </Link>
                   </Button>
                   <Button
@@ -186,6 +208,13 @@ export default function Index() {
           </TableBody>
         </Table>
       </div>
+      <PaginationControls
+        totalItems={filteredkelass.length}
+        rowsPerPage={rowsPerPage}
+        currentPage={currentPage}
+        setRowsPerPage={setRowsPerPage}
+        setCurrentPage={setCurrentPage}
+      />
       <ToastContainer />
     </div>
   );

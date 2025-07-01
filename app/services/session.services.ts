@@ -1,21 +1,17 @@
 import { createCookieSessionStorage } from "@remix-run/node";
 
-export const sessionStorage = createCookieSessionStorage<
-  SessionData,
-  SessionFlashData
->({
+export const sessionStorage = createCookieSessionStorage({
   cookie: {
-    name: "__session",
-    httpOnly: true,
+    name: "__session", // Anda dapat memilih nama lain
+    secure: process.env.NODE_ENV === "production",
+    // secrets: ["YOUR_SESSION_SECRET"], // Ganti dengan secret yang kuat
     sameSite: "lax",
     path: "/",
-    // secrets: [
-    //   process.env.SESSION_SECRET ||
-    //     ("s%3A432.D5egYRj1G7sJyfbyB7jDh7Gf" as string),
-    // ],
-    secure: false,
+    maxAge: 60 * 60 * 24 * 7, // 7 hari
+    httpOnly: true,
   },
 });
+
 
 export const { getSession, commitSession, destroySession } = sessionStorage;
 

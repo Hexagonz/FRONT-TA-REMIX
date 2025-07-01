@@ -25,7 +25,7 @@ export default function KelolaUser() {
   const pathNow = matches[matches.length - 1].pathname;
   const { user } = useLoaderData<typeof loader>();
   return (
-    <div className="bg-[#00BBA7] w-full h-dvh bg-opacity-10 relative flex">
+    <div className="bg-[#00BBA7] w-full min-h-screen bg-opacity-10 relative flex">
       <div className="fixed">
         <Sidebar pathNow={pathNow} role={user?.role || ""} />
       </div>

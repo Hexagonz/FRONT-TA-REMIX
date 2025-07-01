@@ -17,23 +17,23 @@ import {
   redirect,
   useNavigation,
   Form as RemixForm,
-  useLoaderData,
-  useActionData,
 } from "@remix-run/react";
 import { sessionStorage } from "~/services/session.services";
 import { ActionFunctionArgs } from "@remix-run/node";
 import { authenticator } from "~/services/auth.services";
 import axios from "axios";
-import { useState } from "react";
 
 export const meta: MetaFunction = () => {
   return [{ title: "Login | Presenta" }];
 };
 
 const formSchema = z.object({
-  username: z.string().min(2, {
-    message: "Username must be at least 2 characters.",
-  })      .regex(/^[^\s<>'"\\/]+$/),
+  username: z
+    .string()
+    .min(2, {
+      message: "Username must be at least 2 characters.",
+    })
+    .regex(/^[^\s<>'"\\/]+$/),
   password: z.string().min(8, {
     message: "Password must be at least 2 characters.",
   }),
@@ -43,23 +43,41 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     const user = await authenticator.authenticate("user-pass", request);
     const { access_token, refresh_token, role } = user;
-    let session = await sessionStorage.getSession(
+
+    const session = await sessionStorage.getSession(
       request.headers.get("cookie")
     );
+
     session.set("access_token", access_token);
     session.set("refresh_token", refresh_token);
     session.set("role", role);
-    return redirect("/dashboard", {
+
+    let redirectTo = "/login";
+    switch (role) {
+      case "admin":
+      case "super_admin":
+        redirectTo = "/dashboard";
+        break;
+      case "guru":
+      case "siswa":
+        redirectTo = "/absensi";
+        break;
+      default:
+        redirectTo = "/login"; 
+    }
+
+    return redirect(redirectTo, {
       headers: [
         ["Set-Cookie", await sessionStorage.commitSession(session)],
         [
           "Set-Cookie",
-          `refreshToken=${user.refresh_token}; HttpOnly; Secure; Path=/; SameSite=Strict; Max-Age=3600;`,
+          `refreshToken=${refresh_token}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age=3600`,
         ],
       ],
     });
   } catch (error: any) {
-    console.log(error)
+    console.error("Login error:", error);
+
     if (axios.isAxiosError(error)) {
       const serverResponse = error.response?.data;
       return json(
@@ -67,6 +85,7 @@ export async function action({ request }: ActionFunctionArgs) {
         { status: error.response?.status || 500 }
       );
     }
+
     return json({ error: "Unexpected error occurred" }, { status: 500 });
   }
 }
@@ -74,7 +93,14 @@ export async function action({ request }: ActionFunctionArgs) {
 export async function loader({ request }: ActionFunctionArgs) {
   let session = await sessionStorage.getSession(request.headers.get("cookie"));
   let user = session.get("access_token");
-  if (user) return redirect("/dashboard");
+  let role = session.get("role");
+  switch (role) {
+    case "admin":
+      return redirect("/dashboard");
+    case "siswa":
+    case "guru":
+      return redirect("/absensi");
+  }
   return json({ user });
 }
 

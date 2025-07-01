@@ -21,9 +21,14 @@ import {
 } from "~/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { ActionFunctionArgs, json, LoaderFunctionArgs, redirect } from "@remix-run/node";
+import {
+  ActionFunctionArgs,
+  json,
+  LoaderFunctionArgs,
+  redirect,
+} from "@remix-run/node";
 import { useEffect } from "react";
-import axios from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import { sessionStorage } from "~/services/session.services";
 
 const addSchema = z.object({
@@ -41,16 +46,16 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const id = params.idJurusan;
   let session = await sessionStorage.getSession(request.headers.get("cookie"));
   const token = session.get("access_token");
-  const {data} = await axios.get('/jurusan/' + id, {
+  const { data } = await axios.get("/jurusan/" + id, {
     headers: {
-      Authorization: `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
-  console.log(data)
+  console.log(data);
   return { data };
 }
 
-export async function action({ request,params }: ActionFunctionArgs) {
+export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
   const id = params.idJurusan;
   const rawData = {
@@ -65,12 +70,14 @@ export async function action({ request,params }: ActionFunctionArgs) {
   }
 
   try {
-  let session = await sessionStorage.getSession(request.headers.get("cookie"));
-  const token = session.get("access_token");
-  const {data} = await axios.put('/jurusan/'+ id ,parsed.data, {
+    let session = await sessionStorage.getSession(
+      request.headers.get("cookie")
+    );
+    const token = session.get("access_token");
+    const { data } = await axios.put("/jurusan/" + id, parsed.data, {
       headers: {
-          Authorization: `Bearer ${token}`
-        }
+        Authorization: `Bearer ${token}`,
+      },
     });
     console.log(data);
     return redirect("/data-jurusan" + "?success=2");
@@ -93,7 +100,7 @@ export default function EditJurusan() {
   const navigation = useNavigation();
   const fetcher = useFetcher();
   const actionData = useActionData<typeof action>();
-  const {data} = useLoaderData<typeof loader>();
+  const { data } = useLoaderData<typeof loader>();
 
   const onSubmit = (data: z.infer<typeof addSchema>) => {
     const formData = new FormData();
@@ -139,9 +146,7 @@ export default function EditJurusan() {
             >
               <ArrowLeft className="stroke-[2.5] hover:text-[#00BBA7]" />
             </Link>
-            <h1 className="text-[#5D5D5D] font-bold ">
-              Edit Data Jurusan
-            </h1>
+            <h1 className="text-[#5D5D5D] font-bold ">Edit Data Jurusan</h1>
           </div>
           <FormField
             control={form.control}

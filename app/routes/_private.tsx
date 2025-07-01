@@ -21,6 +21,7 @@ async function logoutAndRedirect(request: Request) {
   throw redirect("/login", { headers });
 }
 
+// Loader untuk semua route diawali _protected.
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("cookie"));
   let accessToken = session.get("access_token");
@@ -28,6 +29,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const cookies = parse(request.headers.get("cookie") || "");
   const refreshToken = cookies.refreshToken;
 
+  // ✅ Jika accessToken tidak ada, tapi ada refreshToken → ambil token baru secara silent
   if (!accessToken && refreshToken) {
     try {
       const { data } = await axios.post("/refresh", null, {
@@ -40,7 +42,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
   }
 
-  // ❌ Jika tidak ada dua-duanya, redirect login
   if (!accessToken && !refreshToken) {
     return await logoutAndRedirect(request);
   }
@@ -52,8 +53,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
   } catch (error) {
     return await logoutAndRedirect(request);
   }
+  
+  const allowedRoles = ["siswa","guru"];
 
-  const allowedRoles = ["admin", "super_admin"];
   if (!role || !allowedRoles.includes(role)) {
     throw new Response("Forbidden", { statusText: 'Akses Ditolak',status: 403 });
   }
@@ -65,7 +67,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return json({ role }, { headers });
 }
 
-export default function ProtectedLayout() {
+export default function PrrivateLayout() {
   return (
     <div>
       <main>

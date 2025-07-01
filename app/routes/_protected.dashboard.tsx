@@ -2,25 +2,29 @@ import { MetaFunction } from "@remix-run/node";
 import { json, LoaderFunctionArgs } from "@remix-run/node";
 import { Outlet, useLoaderData, useMatches } from "@remix-run/react";
 import Sidebar from "~/components/ui/dashboard";
-import { getUserFromSession } from "~/services/session.services";
+import { getSession, getUserFromSession } from "~/services/session.services";
 
 export const meta: MetaFunction = () => {
   return [{ title: "Dashboard | Presenta" }];
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const user = await getUserFromSession(request);
-  return json({ user });
+  const session = await getSession(request.headers.get("Cookie"));
+  const role = session.get("role");
+
+  return json({ role });
 }
+
 
 export default function Dashboard() {
   const matches = useMatches();
   const pathNow = matches[matches.length - 1].pathname;
-  const { user } = useLoaderData<typeof loader>();
+  const { role } = useLoaderData<typeof loader>();
+
   return (
-    <div className="bg-[#00BBA7] w-full h-dvh bg-opacity-10 relative flex">
+    <div className="bg-[#00BBA7] w-full min-h-screen bg-opacity-10 relative flex">
       <div className="fixed">
-        <Sidebar pathNow={pathNow} role={user?.role || ""} />
+        <Sidebar pathNow={pathNow} role={role || ""} />
       </div>
       <div className="ml-[49vh] flex-1 overflow-auto">
         <Outlet />

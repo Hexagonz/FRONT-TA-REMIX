@@ -23,7 +23,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
 import { useEffect } from "react";
-import axios from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import { sessionStorage } from "~/services/session.services";
 import { LoaderFunctionArgs } from "@remix-run/node";
 
@@ -42,16 +42,15 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const id = params.idKelas;
   let session = await sessionStorage.getSession(request.headers.get("cookie"));
   const token = session.get("access_token");
-  const {data} = await axios.get('/kelas/' + id, {
+  const { data } = await axios.get("/kelas/" + id, {
     headers: {
-      Authorization: `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
   return { data };
 }
 
-
-export async function action({ request,params }: ActionFunctionArgs) {
+export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
   const id = params.idKelas;
   const rawData = {
@@ -70,7 +69,7 @@ export async function action({ request,params }: ActionFunctionArgs) {
       request.headers.get("cookie")
     );
     const token = session.get("access_token");
-    const { data } = await axios.put("/kelas/"+ id, parsed.data, {
+    const { data } = await axios.put("/kelas/" + id, parsed.data, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -96,7 +95,7 @@ export default function EditKelas() {
   const navigation = useNavigation();
   const fetcher = useFetcher();
   const actionData = useActionData<typeof action>();
-  const {data} = useLoaderData<typeof loader>();
+  const { data } = useLoaderData<typeof loader>();
 
   const onSubmit = (data: z.infer<typeof addSchema>) => {
     const formData = new FormData();

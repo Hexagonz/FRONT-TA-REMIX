@@ -22,12 +22,13 @@ import {
   useNavigate,
 } from "@remix-run/react";
 import { json, LoaderFunctionArgs } from "@remix-run/node";
-import axios from "~/services/axios.services";
+import { axios, axiosPy } from "~/services/axios.services";
 import { sessionStorage } from "~/services/session.services";
 import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { Bounce, toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { PaginationControls } from "~/components/ui/pagination-controls";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   let session = await sessionStorage.getSession(request.headers.get("cookie"));
@@ -45,8 +46,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
       data,
     });
   } catch (error) {
+    console.log(error);
     const err = error as AxiosError;
-
     console.error(
       "Gagal fetch Siswas:",
       err.response?.status,
@@ -75,6 +76,7 @@ export default function Index() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedKelas, setSelectedKelas] = useState<string[]>([]);
   const [selectedJurusan, setSelectedJurusan] = useState<string[]>([]);
+  const [selectedRuang, setSelectedRuang] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("");
   const [showFilter, setShowFilter] = useState(false);
 
@@ -85,6 +87,12 @@ export default function Index() {
     new Set(data.data.map((s: any) => s.jurusan.nama_jurusan))
   );
 
+  const ruangList = Array.from(
+    new Set(data.data.map((s: any) => s.ruang.nomor_ruang))
+  );
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const filteredSiswas = data.data
     .filter((siswa: any) => {
       const matchesSearch = [
@@ -93,6 +101,7 @@ export default function Index() {
         siswa.absen,
         siswa.kelas.nama_kelas,
         siswa.jurusan.nama_jurusan,
+        siswa.jurusan.nomor_ruang,
       ].some((value) =>
         value.toString().toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -103,22 +112,26 @@ export default function Index() {
       const matchesJurusan =
         selectedJurusan.length === 0 ||
         selectedJurusan.includes(siswa.jurusan.nama_jurusan);
+      const matchesRuang =
+        selectedRuang.length === 0 ||
+        selectedRuang.includes(siswa.ruang.nomor_ruang);
 
-      return matchesSearch && matchesKelas && matchesJurusan;
+      return matchesSearch && matchesKelas && matchesJurusan && matchesRuang;
     })
     .sort((a: any, b: any) => {
       if (sortBy === "nama_asc")
         return a.nama_siswa.localeCompare(b.nama_siswa);
       if (sortBy === "nama_desc")
         return b.nama_siswa.localeCompare(a.nama_siswa);
-            if (sortBy === "absen_asc")
-        return a.no_absen - b.no_absen;
-      if (sortBy === "absen_desc")
-        return b.no_absen - a.no_absen;
+      if (sortBy === "absen_asc") return a.no_absen - b.no_absen;
+      if (sortBy === "absen_desc") return b.no_absen - a.no_absen;
       if (sortBy === "nisn_asc") return parseInt(a.nisn) - parseInt(b.nisn);
       if (sortBy === "nisn_desc") return parseInt(b.nisn) - parseInt(a.nisn);
       return 0;
     });
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const currentData = filteredSiswas.slice(startIndex, endIndex);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -148,13 +161,19 @@ export default function Index() {
     }
   }, [location]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, nama_siswa: string, nisn: string) => {
     try {
+      // 1. Hapus data siswa dari Laravel (pastikan token tersedia)
       await axios.delete(`/siswa/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           withCredentials: true,
         },
+      });
+
+      await axiosPy.post("/delete-folder", {
+        id_siswa: nisn,
+        nama_siswa: nama_siswa,
       });
       navigate("/data-siswa?success=3", { replace: true });
     } catch (error) {
@@ -163,7 +182,7 @@ export default function Index() {
   };
 
   return (
-    <div className="*:mx-2">
+    <div className="*:mx-2 ">
       <Navbar title="Kelola Data Siswa" />
       <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center pt-2 text-[#5D5D5D]">
         <div className="flex flex-wrap items-center gap-4">
@@ -226,6 +245,26 @@ export default function Index() {
                   ))}
                 </div>
                 <div>
+                  <p className="text-sm font-semibold">Filter Ruangan:</p>
+                  {ruangList.map((k: any) => (
+                    <label key={k} className="flex gap-1 items-center text-sm">
+                      <input
+                        type="checkbox"
+                        className="appearance-none w-4 h-4 border border-gray-400 rounded-sm bg-white checked:bg-[#00BBA7] checked:border-transparent focus:outline-none"
+                        checked={selectedRuang.includes(k)}
+                        onChange={(e) => {
+                          setSelectedRuang((prev) =>
+                            e.target.checked
+                              ? [...prev, k]
+                              : prev.filter((item) => item !== k)
+                          );
+                        }}
+                      />
+                      {k}
+                    </label>
+                  ))}
+                </div>
+                <div>
                   <p className="text-sm font-semibold">Urutkan:</p>
                   <select
                     value={sortBy}
@@ -276,11 +315,12 @@ export default function Index() {
               <TableHead className="text-center">Jurusan</TableHead>
               <TableHead className="text-center">Kelas</TableHead>
               <TableHead className="text-center">No Absen</TableHead>
+              <TableHead className="text-center">Ruangan</TableHead>
               <TableHead className="text-right pr-12">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="*:text-center">
-            {filteredSiswas.map((siswa: any) => (
+            {currentData.map((siswa: any) => (
               <TableRow key={siswa.id_siswa}>
                 <TableCell className="flex justify-start items-center gap-x-2 text-left">
                   <Avatar>
@@ -297,6 +337,9 @@ export default function Index() {
                   {siswa.kelas.nama_kelas}
                 </TableCell>
                 <TableCell className="text-center">{siswa.no_absen}</TableCell>
+                <TableCell className="text-center">
+                  {siswa.jurusan.nama_jurusan} {siswa.ruang.nomor_ruang}
+                </TableCell>
                 <TableCell className="text-right  w-max *:w-8 *:h-8 *:mx-1">
                   <Button
                     asChild
@@ -319,7 +362,13 @@ export default function Index() {
                     Icon={Trash}
                     classIcon="text-[#FB2C36]"
                     alertTitle="Anda Yakin Ingin Menghapus Data Tersebut?"
-                    onClick={() => handleDelete?.(siswa.id_siswa)}
+                    onClick={() =>
+                      handleDelete?.(
+                        siswa.id_siswa,
+                        siswa.nama_siswa,
+                        siswa.nisn
+                      )
+                    }
                     color="#FB2C36"
                   />
                 </TableCell>
@@ -328,6 +377,13 @@ export default function Index() {
           </TableBody>
         </Table>
       </div>
+      <PaginationControls
+        totalItems={filteredSiswas.length}
+        rowsPerPage={rowsPerPage}
+        currentPage={currentPage}
+        setRowsPerPage={setRowsPerPage}
+        setCurrentPage={setCurrentPage}
+      />
       <ToastContainer />
     </div>
   );

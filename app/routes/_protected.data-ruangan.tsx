@@ -4,7 +4,7 @@ import Sidebar from "~/components/ui/dashboard";
 import { getUserFromSession } from "~/services/session.services";
 
 export const meta: MetaFunction = () => {
-  return [{ title: "Data Kelas | Presenta" }];
+  return [{ title: "Data Ruangan | Presenta" }];
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -12,12 +12,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return json({ user });
 }
 
-export default function DataKelas() {
+export default function DataRuangan() {
   const matches = useMatches();
   const pathNow = matches[matches.length - 1].pathname;
   const { user } = useLoaderData<typeof loader>();
   return (
-    <div className="bg-[#00BBA7] w-full h-dvh bg-opacity-10 relative flex">
+    <div className="bg-[#00BBA7] w-full min-h-screen bg-opacity-10 relative flex">
       <div className="fixed">
         <Sidebar pathNow={pathNow} role={user?.role || ""} />
       </div>

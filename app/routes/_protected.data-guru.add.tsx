@@ -22,7 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
 import { useEffect } from "react";
-import axios from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import {
   Select,
   SelectContent,
@@ -125,26 +125,21 @@ export default function AddGuru() {
   const fetcher = useFetcher();
   const actionData = useActionData<typeof action>();
 
-const onSubmit = (data: z.infer<typeof addSchema>) => {
-  const formData = new FormData();
+  const onSubmit = (data: z.infer<typeof addSchema>) => {
+    const formData = new FormData();
 
-  for (const key in data) {
-    const value = data[key as keyof typeof data];
+    for (const key in data) {
+      const value = data[key as keyof typeof data];
 
-    if (
-      typeof value === "object" &&
-      value !== null 
-    ) {
-      formData.append(key, value);
-    } else {
-      formData.append(key, String(value));
+      if (typeof value === "object" && value !== null) {
+        formData.append(key, value);
+      } else {
+        formData.append(key, String(value));
+      }
     }
-  }
 
-  fetcher.submit(formData, { method: "post" });
-};
-
-
+    fetcher.submit(formData, { method: "post" });
+  };
 
   useEffect(() => {
     if (actionData?.error) {

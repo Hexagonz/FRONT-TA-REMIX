@@ -23,33 +23,30 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
 import { useEffect } from "react";
-import axios from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import { sessionStorage } from "~/services/session.services";
 import { LoaderFunctionArgs } from "@remix-run/node";
 
 const addSchema = z.object({
-  nama_kelas: z
-    .string(),
-  kelas_romawi: z
-    .string()
+  nama_kelas: z.string(),
+  kelas_romawi: z.string(),
 });
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const id = params.idKelas;
   let session = await sessionStorage.getSession(request.headers.get("cookie"));
   const token = session.get("access_token");
-  const {data} = await axios.get('/kelas/' + id, {
+  const { data } = await axios.get("/kelas/" + id, {
     headers: {
-      Authorization: `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
   return { data };
 }
 
-
 export default function ViewKelas() {
   const navigation = useNavigation();
-  const {data} = useLoaderData<typeof loader>();
+  const { data } = useLoaderData<typeof loader>();
 
   const form = useForm<z.infer<typeof addSchema>>({
     resolver: zodResolver(addSchema),

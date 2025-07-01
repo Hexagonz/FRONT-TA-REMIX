@@ -34,35 +34,26 @@ import { AxiosError } from "axios";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { sessionStorage } from "~/services/session.services";
-import { LoaderSuccess } from "~/@types/type";
 
 const addSchema = z.object({
-  nama_guru: z.string(),
-  nip: z.string(),
-  id_mapel: z.coerce.number().int(),
+  nomor_ruang: z.coerce.number({ message: "Nomor Ruang harus angka" }).int(),
+  id_jurusan: z.coerce.number({ message: "Jurusan harus angka" }).int(),
 });
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const id = params.idGuru;
+  const id = params.idRuangan;
   const cookie = request.headers.get("cookie");
   const session = await sessionStorage.getSession(cookie);
   const token = session.get("access_token");
 
-  if (!id) {
-    return json(
-      { status: false, message: "ID Guru tidak ditemukan" },
-      { status: 400 }
-    );
-  }
-
   try {
-    const { data: listMapel } = await axios.get("/mata-pelajaran", {
+    const { data: listJurusan } = await axios.get("/jurusan", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    const { data: detailMapel } = await axios.get("/guru/" + id, {
+    const { data: detailMapel } = await axios.get("/ruang-kelas/" + id, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -71,7 +62,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       status: true,
       message: "Berhasil mengambil data guru dan mapel",
       data: {
-        list: listMapel.data,
+        list: listJurusan.data,
         detail: detailMapel.data,
       },
     });
@@ -84,22 +75,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       {
         status: false,
         message: err.response?.data || "Terjadi kesalahan saat fetch",
+        data: {
+          list: [],
+          detail: {},
+        },
       },
       { status: err.response?.status || 500 }
     );
   }
 }
 
-export default function ViewGuru() {
-  const data = useLoaderData<LoaderSuccess>();
+export default function ViewRuangan() {
+  const navigation = useNavigation();
+  const data = useLoaderData<typeof loader>();
 
   const form = useForm<z.infer<typeof addSchema>>({
     resolver: zodResolver(addSchema),
     mode: "onSubmit",
     defaultValues: {
-      nama_guru: data.data.detail.nama_guru,
-      nip: data.data.detail.nip,
-      id_mapel: data.data.detail.id_mapel,
+      nomor_ruang: data.data.detail.nomor_ruang,
+      id_jurusan: data.data.detail.id_jurusan,
     },
   });
 
@@ -112,29 +107,28 @@ export default function ViewGuru() {
         >
           <div className="flex items-start pt-6 gap-x-20">
             <Link
-              to="/data-guru"
+              to="/data-ruangan"
               className="h-min pl-1 items-center text-center *:text-[#5D5D5DAA] w-max  px-3   *:hover:cursor-pointer"
             >
               <ArrowLeft className="stroke-[2.5] hover:text-[#00BBA7]" />
             </Link>
             <h1 className="text-[#5D5D5D] font-bold text-center">
-              View Data Guru
+              View Data Ruangan
             </h1>
           </div>
           <FormField
             control={form.control}
-            name="nama_guru"
+            name="nomor_ruang"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-[#5D5D5D]">Nama </FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    className="focus:border-[#25CAB8]"
-                    type="text"
-                    disabled
-                  />
-                </FormControl>
+                <FormLabel className="text-[#5D5D5D]">No Ruangan</FormLabel>
+                <Input
+                  {...field}
+                  className="focus:border-[#25CAB8]"
+                  type="number"
+                  placeholder="No Ruangan"
+                  disabled
+                />
                 <FormMessage className="text-xs" />
               </FormItem>
             )}
@@ -142,31 +136,11 @@ export default function ViewGuru() {
 
           <FormField
             control={form.control}
-            name="nip"
+            name="id_jurusan"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-[#5D5D5D]">
-                  Nomor Induk Pegawai
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    className="focus:border-[#25CAB8]"
-                    {...field}
-                    disabled
-                  />
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="id_mapel"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-[#5D5D5D]">Mata Pelajaran</FormLabel>
-                <MataPelajaranSelect field={field} />
+                <FormLabel className="text-[#5D5D5D]">Jurusan</FormLabel>
+                <JurusanSelect field={field} />
                 <FormMessage className="text-xs" />
               </FormItem>
             )}
@@ -177,20 +151,27 @@ export default function ViewGuru() {
   );
 }
 
-export function MataPelajaranSelect({ field }: { field: any }) {
-  const data = useLoaderData<LoaderSuccess>();
+function JurusanSelect({ field }: { field: any }) {
+  const loaderData = useLoaderData<typeof loader>();
 
   return (
-    <Select onValueChange={field.onChange} defaultValue={field.value} disabled>
+    <Select
+      onValueChange={field.onChange}
+      defaultValue={field.value.toString()}
+      disabled
+    >
       <FormControl className="focus:border-[#25CAB8]">
         <SelectTrigger>
-          <SelectValue placeholder="Pilih Mata Pelajaran" />
+          <SelectValue placeholder="Pilih Jurusan" />
         </SelectTrigger>
       </FormControl>
       <SelectContent>
-        {data.data.list.map((mapel: any) => (
-          <SelectItem key={mapel.id_mapel} value={mapel.id_mapel}>
-            {mapel.nama_mapel} - {mapel.deskripsi}
+        {loaderData.data.list.map((jurusan: any) => (
+          <SelectItem
+            key={jurusan.id_jurusan}
+            value={jurusan.id_jurusan.toString()}
+          >
+            {jurusan.nama_jurusan} - {jurusan.deskripsi}
           </SelectItem>
         ))}
       </SelectContent>

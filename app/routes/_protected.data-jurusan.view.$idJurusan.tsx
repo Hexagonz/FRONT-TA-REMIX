@@ -21,34 +21,35 @@ import {
 } from "~/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { ActionFunctionArgs, json, LoaderFunctionArgs, redirect } from "@remix-run/node";
+import {
+  ActionFunctionArgs,
+  json,
+  LoaderFunctionArgs,
+  redirect,
+} from "@remix-run/node";
 import { useEffect } from "react";
-import axios from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import { sessionStorage } from "~/services/session.services";
 
 const addSchema = z.object({
-  nama_jurusan: z
-    .string(),
-  deskripsi: z
-    .string(),
+  nama_jurusan: z.string(),
+  deskripsi: z.string(),
 });
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const id = params.idJurusan;
   let session = await sessionStorage.getSession(request.headers.get("cookie"));
   const token = session.get("access_token");
-  const {data} = await axios.get('/jurusan/' + id, {
+  const { data } = await axios.get("/jurusan/" + id, {
     headers: {
-      Authorization: `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
   return { data };
 }
 
-
 export default function AddMataPelajaran() {
-  const {data} = useLoaderData<typeof loader>();
-
+  const { data } = useLoaderData<typeof loader>();
 
   const form = useForm<z.infer<typeof addSchema>>({
     resolver: zodResolver(addSchema),
@@ -72,9 +73,7 @@ export default function AddMataPelajaran() {
             >
               <ArrowLeft className="stroke-[2.5] hover:text-[#00BBA7]" />
             </Link>
-            <h1 className="text-[#5D5D5D] font-bold ">
-              View Data Jurusan
-            </h1>
+            <h1 className="text-[#5D5D5D] font-bold ">View Data Jurusan</h1>
           </div>
           <FormField
             control={form.control}
@@ -85,7 +84,8 @@ export default function AddMataPelajaran() {
                 <FormControl>
                   <Input
                     {...field}
-                    className="focus:border-[#25CAB8]" disabled
+                    className="focus:border-[#25CAB8]"
+                    disabled
                     type="text"
                   />
                 </FormControl>

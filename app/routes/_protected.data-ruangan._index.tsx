@@ -22,7 +22,7 @@ import {
   useNavigate,
 } from "@remix-run/react";
 import { json, LoaderFunctionArgs } from "@remix-run/node";
-import {axios} from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import { sessionStorage } from "~/services/session.services";
 import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
@@ -35,7 +35,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const token = session.get("access_token");
 
   try {
-    const { data } = await axios.get("/guru", {
+    const { data } = await axios.get("/ruang-kelas", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -50,7 +50,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const err = error as AxiosError;
 
     console.error(
-      "Gagal fetch Gurus:",
+      "Gagal fetch ruangan:",
       err.response?.status,
       err.response?.data
     );
@@ -58,7 +58,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return json(
       {
         status: false,
-        message: err.response?.data || "Terjadi kesalahan saat fetch Guru",
+        message: err.response?.data || "Terjadi kesalahan saat fetch ruangan",
         data: err.response?.data,
       },
       { status: err.response?.status || 500 }
@@ -74,33 +74,28 @@ export default function Index() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
-
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const filteredGurus = data.data.filter((guru: any) =>
-    [
-      guru.nama_guru,
-      guru.nip,
-      guru.mapel.nama_mapel,
-      guru.mapel.deskripsi,
-    ].some((value) =>
+  const filteredRuangans = data.data.filter((ruangan: any) =>
+    [ruangan.nomor_ruang, ruangan.jurusan.nama_jurusan].some((value) =>
       value.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
 
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
-  const currentData = filteredGurus.slice(startIndex, endIndex);
+  const currentData = filteredRuangans.slice(startIndex, endIndex);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const data = params.get("success");
     if (data) {
       toast.success(
         data === "1"
-          ? "Sukses Menambahkan Guru Baru"
+          ? "Sukses Menambahkan ruangan Baru"
           : data === "2"
-          ? "Sukses Mengedit Data Guru"
-          : "Sukses Menghapus Data Guru",
+          ? "Sukses Mengedit Data ruangan"
+          : "Sukses Menghapus Data ruangan",
         {
           position: "top-center",
           autoClose: 2997,
@@ -121,77 +116,72 @@ export default function Index() {
 
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete(`/guru/${id}`, {
+      await axios.delete(`/ruang-kelas/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           withCredentials: true,
         },
       });
-      navigate("/data-guru?success=3", { replace: true });
+      navigate("/data-ruangan?success=3", { replace: true });
     } catch (error) {
       console.error("Gagal hapus:", error);
     }
   };
   return (
     <div className="*:mx-2">
-      <Navbar title="Kelola Data Guru" />
+      <Navbar title="Kelola Data ruangan" />
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-x-4 text-[#5D5D5D] pt-2">
           <p className="text-sm">Search: </p>
           <Input
             className="bg-white rounded-none w-60"
-            placeholder="Cari Guru"
+            placeholder="Cari Ruangan"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Link to="/data-guru/add">
+        <Link to="/data-ruangan/add">
           <Button className="mr-4 bg-[#00BBA7] hover:bg-[#00BBA7AA] *:font-bold">
-            <Plus className="stroke-[2.5]" /> Tambah Data Guru
+            <Plus className="stroke-[2.5]" /> Tambah Data Ruangan
           </Button>
         </Link>
       </div>
       <div className="w-[97%] bg-white h-max rounded-lg shadow-sm my-5 *:text-[#5D5D5D] ">
         <Table>
-          {filteredGurus.length == 0 ? (
+          {filteredRuangans.length == 0 ? (
             <TableCaption className="bg-transparent pb-2">
               Data tidak ditemukan
             </TableCaption>
           ) : null}
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[250px] text-left pl-10">
-                Nama Guru
+              <TableHead className="w-[190px] text-center">
+                No Ruangan
               </TableHead>
-              <TableHead className="text-center">NIP</TableHead>
-              <TableHead className="text-center">Mata Pelajaran</TableHead>
-              <TableHead className="text-center">Deskripsi</TableHead>
-              <TableHead className="text-center">Action</TableHead>
+              <TableHead className="w-[600px] text-center">Jurusan</TableHead>
+              <TableHead className="text-right pr-12">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="*:text-center">
-            {currentData.map((guru: any) => (
-              <TableRow key={guru.id_guru}>
-                <TableCell className="flex justify-start items-center gap-x-2 text-left">
+            {currentData.map((ruangan: any) => (
+              <TableRow key={ruangan.id_ruang}>
+                <TableCell className="flex justify-center items-center gap-x-2">
                   <Avatar>
-                    <AvatarImage src="https://github.com/shadcn.png" />
-                    <AvatarFallback>CN</AvatarFallback>
+                    <AvatarFallback className="font-bold text-[#00BBA7]">
+                      {ruangan.nomor_ruang}
+                    </AvatarFallback>
                   </Avatar>
-                  {guru.nama_guru}
+                  Ruangan {ruangan.nomor_ruang}
                 </TableCell>
-                <TableCell className="text-center">{guru.nip}</TableCell>
                 <TableCell className="text-center">
-                  {guru.mapel.nama_mapel}
-                </TableCell>
-                <TableCell className="text-center ">
-                  {guru.mapel.deskripsi}
+                  {ruangan.jurusan.nama_jurusan}
                 </TableCell>
                 <TableCell className="text-right  w-max *:w-8 *:h-8 *:mx-1">
                   <Button
                     asChild
                     className="bg-[#4F6FFF33] rounded hover:bg-[#4F6FFF] *:hover:text-white"
                   >
-                    <Link to={`/data-guru/view/${guru.id_guru}`}>
+                    <Link to={`/data-ruangan/view/${ruangan.id_ruang}`}>
                       <Eye className="text-[#4F6FFF] " />
                     </Link>
                   </Button>
@@ -199,7 +189,7 @@ export default function Index() {
                     asChild
                     className="bg-[#FFBA0033] rounded hover:bg-[#FFBA00] *:hover:text-white"
                   >
-                    <Link to={`/data-guru/${guru.id_guru}`}>
+                    <Link to={`/data-ruangan/${ruangan.id_ruang}`}>
                       <EditOne className="text-[#FFBA00]" />
                     </Link>
                   </Button>
@@ -208,7 +198,7 @@ export default function Index() {
                     Icon={Trash}
                     classIcon="text-[#FB2C36]"
                     alertTitle="Anda Yakin Ingin Menghapus Data Tersebut?"
-                    onClick={() => handleDelete?.(guru.id_guru)}
+                    onClick={() => handleDelete?.(ruangan.id_ruang)}
                     color="#FB2C36"
                   />
                 </TableCell>
@@ -218,7 +208,7 @@ export default function Index() {
         </Table>
       </div>
       <PaginationControls
-        totalItems={filteredGurus.length}
+        totalItems={filteredRuangans.length}
         rowsPerPage={rowsPerPage}
         currentPage={currentPage}
         setRowsPerPage={setRowsPerPage}

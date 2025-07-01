@@ -22,12 +22,13 @@ import {
   useNavigate,
 } from "@remix-run/react";
 import { json, LoaderFunctionArgs } from "@remix-run/node";
-import axios from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import { sessionStorage } from "~/services/session.services";
 import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { Bounce, toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { PaginationControls } from "~/components/ui/pagination-controls";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   let session = await sessionStorage.getSession(request.headers.get("cookie"));
@@ -41,9 +42,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
 
     return json({
+      token,
       data,
     });
   } catch (error) {
+    console.log(error);
     const err = error as AxiosError;
 
     console.error("Gagal fetch s:", err.response?.status, err.response?.data);
@@ -67,11 +70,16 @@ export default function Index() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const filteredMapels = data.data.filter((mapel: any) =>
     [mapel.nama_mapel, mapel.deskripsi].some((value) =>
-      value.toLowerCase().includes(searchTerm.toLowerCase())
+      value.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const currentData = filteredMapels.slice(startIndex, endIndex);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -122,7 +130,7 @@ export default function Index() {
           <p className="text-sm">Search: </p>
           <Input
             className="bg-white rounded-none w-60"
-            placeholder="Search"
+            placeholder="Cari Mata Pelajaran"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -152,12 +160,12 @@ export default function Index() {
             </TableRow>
           </TableHeader>
           <TableBody className="*:text-center">
-            {filteredMapels.map((mapel: any) => (
+            {currentData.map((mapel: any) => (
               <TableRow key={mapel.id_mapel}>
                 <TableCell className="text-center flex justify-center">
                   <Avatar>
                     <AvatarFallback className="font-bold text-[#00BBA7] ">
-                       {mapel.nama_mapel}
+                      {mapel.nama_mapel}
                     </AvatarFallback>
                   </Avatar>
                 </TableCell>
@@ -193,6 +201,13 @@ export default function Index() {
           </TableBody>
         </Table>
       </div>
+      <PaginationControls
+        totalItems={filteredMapels.length}
+        rowsPerPage={rowsPerPage}
+        currentPage={currentPage}
+        setRowsPerPage={setRowsPerPage}
+        setCurrentPage={setCurrentPage}
+      />
       <ToastContainer />
     </div>
   );

@@ -50,7 +50,56 @@ export type LoaderKelasJurusan = {
   data: {
     kelas: Kelas[];
     jurusan: Jurusan[];
-    siswa?: Siswa
+    ruang: RuangKelas[];
+    siswa?: Siswa;
+    foto: Foto;
   };
 };
 
+export interface Siswa {
+  data: {
+    id_siswa: number;
+    nama_siswa: string;
+    nisn: string;
+    no_absen: number;
+    id_kelas: number;
+    id_jurusan: number;
+    id_ruang: number;
+  };
+}
+
+interface Foto {
+  data: {
+    images: string[]
+  }
+}
+export interface Guru {
+  id_guru: number;
+  nama_guru: number;
+  id_mapel: number;
+}
+
+export interface RuangKelas {
+  id_ruang: number;
+  nomor_ruang: number;
+  id_jurusan: number;
+}
+
+export interface Jurusan {
+  id_jurusan: number;
+  nama_jurusan: string;
+  deskripsi: string;
+}
+
+export interface Kelas {
+  id_kelas: number;
+  nama_kelas: string;
+  kelas_romawi: string;
+}
+
+export interface RuangKelas {
+  id_ruang: number;
+  nomor_ruang: number;
+  id_jurusan: number;
+  jurusan: Jurusan;
+}

@@ -22,7 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
 import { useEffect } from "react";
-import axios from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import { sessionStorage } from "~/services/session.services";
 
 const addSchema = z.object({
@@ -51,13 +51,15 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-  let session = await sessionStorage.getSession(request.headers.get("cookie"));
-  const token = session.get("access_token");
-  const {data} = await axios.post('/jurusan',parsed.data, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  });
+    let session = await sessionStorage.getSession(
+      request.headers.get("cookie")
+    );
+    const token = session.get("access_token");
+    const { data } = await axios.post("/jurusan", parsed.data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     console.log(data);
     return redirect("/data-jurusan" + "?success=1");
   } catch (error: any) {
@@ -124,9 +126,7 @@ export default function AddJurusan() {
             >
               <ArrowLeft className="stroke-[2.5] hover:text-[#00BBA7]" />
             </Link>
-            <h1 className="text-[#5D5D5D] font-bold ">
-              Tambah Data Jurusan
-            </h1>
+            <h1 className="text-[#5D5D5D] font-bold ">Tambah Data Jurusan</h1>
           </div>
           <FormField
             control={form.control}

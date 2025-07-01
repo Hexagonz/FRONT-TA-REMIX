@@ -23,7 +23,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
 import { useEffect } from "react";
-import axios from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import {
   Select,
   SelectContent,
@@ -57,10 +57,10 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const id = params.userId;
   let session = await sessionStorage.getSession(request.headers.get("cookie"));
   const token = session.get("access_token");
-  const {data} = await axios.get('/users/' + id, {
+  const { data } = await axios.get("/users/" + id, {
     headers: {
-      Authorization: `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
   return { data };
 }
@@ -86,8 +86,8 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     const data = await axios.put("/users", parsed.data, {
       headers: {
-        Authorization: `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     });
     console.log(data);
     return redirect("/kelola-user" + "?success=2");
@@ -107,7 +107,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function EditKelolaUser() {
-  const {data} = useLoaderData<typeof loader>();
+  const { data } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const fetcher = useFetcher();
   const actionData = useActionData<typeof action>();
@@ -176,7 +176,8 @@ export default function EditKelolaUser() {
                     type="text"
                     inputMode="numeric"
                     placeholder="NISN (Angka)"
-                    disabled/>
+                    disabled
+                  />
                 </FormControl>
                 <FormMessage className="text-xs" />
               </FormItem>
