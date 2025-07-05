@@ -1,7 +1,23 @@
-import { MetaFunction } from "@remix-run/node";
+// app/routes/index.tsx
+import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import { getSession } from "~/services/session.services"; 
 import { useEffect, useRef, useState } from "react";
 
+export async function loader({ request }: LoaderFunctionArgs) {
+  const session = await getSession(request.headers.get("cookie"));
+  const username = session.get("username");
+
+  if (!username) {
+    return json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return json({ nim: username });
+}
+
 export default function Index() {
+  const { nim } = useLoaderData<{ nim: string }>();
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -20,28 +36,20 @@ export default function Index() {
   };
 
   useEffect(() => {
-    if (typeof window !== "undefined" && navigator.mediaDevices) {
-      navigator.mediaDevices
-        .getUserMedia({ video: true })
-        .then((stream) => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.onloadedmetadata = () => {
-              if (stream.active) {
-                setIsCameraReady(true);
-                console.log("[CAM] Kamera aktif");
-              }
-            };
-          }
-        })
-        .catch((err) => {
-          console.error("[CAM] Kamera gagal dibuka:", err);
-          setStatus("❌ Akses kamera ditolak atau tidak tersedia");
-          setIsCameraReady(false);
-        });
-    } else {
-      console.warn("getUserMedia tidak tersedia (bukan di browser)");
-    }
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((stream) => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => {
+            if (stream.active) setIsCameraReady(true);
+          };
+        }
+      })
+      .catch(() => {
+        setStatus("❌ Akses kamera ditolak");
+        setIsCameraReady(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -49,34 +57,28 @@ export default function Index() {
     socketRef.current = socket;
 
     socket.onopen = () => {
-      console.log("[WS] Connected");
       setIsWsOpen(true);
       setStatus("✅ Terhubung ke server");
     };
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-
       setStatus("🔍 Memindai wajah...");
       setIsScanning(true);
       startScanEffect();
 
       setTimeout(() => {
-        console.log(data.result)
-        if (!(data.result === "Tidak Dikenal")) {
+        if (data.result && data.result !== "Tidak Dikenal") {
           setStatus(`✅ ${data.result}`);
-          speak(
-            data.result === "Tidak Dikenal"
-              ? data.result
-              : `Absensi berhasil. ${data.result}`
-          );
-        } else if(data.result == "Tidak Dikenal") {
+          speak(`Absensi berhasil. ${data.result}`);
+        } else if (data.result === "Tidak Dikenal") {
           setIsSent(false);
-          speak(data.result);
-          setStatus(`❌ ${data.result}`);
+          speak("Tidak Dikenal");
+          setStatus("❌ Tidak Dikenal");
         } else if (data.error) {
           setStatus(`❌ ${data.error}`);
           speak(`Terjadi kesalahan. ${data.error}`);
+          setIsSent(false);
         }
 
         stopScanEffect();
@@ -90,7 +92,6 @@ export default function Index() {
     };
 
     socket.onclose = () => {
-      console.log("[WS] Disconnected");
       setIsWsOpen(false);
     };
 
@@ -108,7 +109,7 @@ export default function Index() {
       ctx?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL("image/jpeg");
 
-      socketRef.current.send(JSON.stringify({ image: dataUrl }));
+      socketRef.current.send(JSON.stringify({ image: dataUrl, nim }));
       setStatus("📤 Mengirim gambar...");
       setIsSent(true);
     } else {
@@ -126,7 +127,6 @@ export default function Index() {
 
     const animate = () => {
       if (!ctx) return;
-
       ctx.clearRect(0, 0, width, height);
       ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
       ctx.fillRect(0, 0, width, height);
@@ -142,7 +142,6 @@ export default function Index() {
 
       y += speed;
       if (y > height) y = 0;
-
       scanAnimationRef.current = requestAnimationFrame(animate);
     };
 
@@ -150,18 +149,13 @@ export default function Index() {
   };
 
   const stopScanEffect = () => {
-    if (scanAnimationRef.current) {
-      cancelAnimationFrame(scanAnimationRef.current);
-      scanAnimationRef.current = null;
-    }
-
+    if (scanAnimationRef.current) cancelAnimationFrame(scanAnimationRef.current);
     const ctx = canvasRef.current?.getContext("2d");
-    if (ctx) {
-      ctx.clearRect(0, 0, 320, 240);
-    }
+    ctx?.clearRect(0, 0, 320, 240);
   };
 
   const isReady = isWsOpen && isCameraReady && !isSent && !isScanning;
+
   return (
     <div className="flex flex-col items-center justify-center mb-20">
       <div className="bg-white rounded-xl shadow-2xl pb-10 flex flex-col items-center gap-y-10">
@@ -172,7 +166,7 @@ export default function Index() {
             muted
             width={320}
             height={240}
-            className="rounded-xl rounded-b-none shadow border outline-none absolute top-0 left-0 z-0"
+            className="rounded-xl rounded-b-none shadow border absolute top-0 left-0 z-0"
           />
           <canvas
             ref={canvasRef}

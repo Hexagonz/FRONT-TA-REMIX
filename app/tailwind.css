@@ -13,7 +13,59 @@ body {
   }
 }
 
+@layer utilities {
+  @media (max-width: 1023px) {
+    .box {
+      width: 100% !important;
+      height: auto !important;
+      flex-direction: column !important;
+      border-radius: 10px !important;
+      padding: 1rem;
+      max-width: 95vw;
+    }
 
+    .title {
+      padding: 1rem !important;
+      border-radius: 10px 10px 0 0 !important;
+      flex-direction: column !important;
+    }
+
+    .title img {
+      width: 5rem !important;
+      height: 5rem !important;
+    }
+
+    .titles h1 {
+      font-size: 1.75rem !important;
+      text-align: center !important;
+    }
+
+    .titles p {
+      text-align: center !important;
+    }
+
+    .login {
+      width: 100% !important;
+      margin: 0 auto !important;
+      padding-top: 1rem;
+    }
+  }
+}
+/* toast-custom.css */
+.toast-mobile {
+  font-size: 0.875rem; /* text-sm */
+  padding: 0.75rem 1rem; /* px-4 py-3 */
+  max-width: 90vw;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .toast-mobile {
+    font-size: 1rem; /* text-base di tablet ke atas */
+    max-width: 400px;
+  }
+}
 
 @layer base {
   :root {

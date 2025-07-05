@@ -13,7 +13,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return json({ user });
 }
 
-export default function Jadwal() {
+export default function KelolaJadwal() {
   const matches = useMatches();
   const pathNow = matches[matches.length - 1].pathname;
   const { user } = useLoaderData<typeof loader>();

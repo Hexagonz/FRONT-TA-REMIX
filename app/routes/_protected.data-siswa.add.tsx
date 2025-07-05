@@ -224,13 +224,8 @@ export default function AddSiswa() {
         headers: { "Content-Type": "multipart/form-data" },
       });
     } catch (error: any) {
-      toast.error("Gagal upload gambar.", {
-        position: "top-center",
-        autoClose: 5000,
-        transition: Bounce,
-      });
+      console.log(error)
       setIsLoading(false);
-      return;
     }
 
     const formData = new FormData();

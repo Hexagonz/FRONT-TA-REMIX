@@ -40,7 +40,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
   }
 
-  // ❌ Jika tidak ada dua-duanya, redirect login
   if (!accessToken && !refreshToken) {
     return await logoutAndRedirect(request);
   }
@@ -55,7 +54,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const allowedRoles = ["admin", "super_admin"];
   if (!role || !allowedRoles.includes(role)) {
-    throw new Response("Forbidden", { statusText: 'Akses Ditolak',status: 403 });
+    throw new Response("Forbidden", {
+      statusText: "Akses Ditolak",
+      status: 403,
+    });
   }
 
   // Set-Cookie baru jika session diperbarui

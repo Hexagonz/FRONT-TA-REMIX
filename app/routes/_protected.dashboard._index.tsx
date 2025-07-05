@@ -18,35 +18,54 @@ import { sessionStorage } from "~/services/session.services";
 import logo from "~/src/img/sma.png";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const session = await sessionStorage.getSession(
-    request.headers.get("cookie")
-  );
+  const session = await sessionStorage.getSession(request.headers.get("cookie"));
   const token = session.get("access_token");
-  console.log(token);
-  // 🛡️ Langkah 1: Proteksi Rute dan Validasi Token
-  // Jika tidak ada token, sesi tidak valid. Paksa kembali ke login.
+
+  if (!token) {
+    return redirect("/login");
+  }
+
   const headers = { Authorization: `Bearer ${token}` };
 
-  try {
-    const [siswaRes, ruangRes, guruRes] = await Promise.all([
-      axios.get("/siswa", { headers }),
-      axios.get("/ruang-kelas", { headers }),
-      axios.get("/guru", { headers }),
-    ]);
-    const siswa: Siswa[] = siswaRes.data.data || [];
-    const ruang: RuangKelas[] = ruangRes.data.data || [];
-    const guru: Guru[] = guruRes.data.data || [];
+  const [siswaResult, ruangResult, guruResult] = await Promise.allSettled([
+    axios.get("/siswa", { headers }),
+    axios.get("/ruang-kelas", { headers }),
+    axios.get("/guru", { headers }),
+  ]);
 
-    return json({ siswa, guru, ruang });
-  } catch (error) {
-    const err = error as AxiosError;
-    // 💡 Langkah 3: Penanganan Kesalahan yang Lebih Baik
-    // Jika error adalah 401 atau 403, berarti token tidak valid/kadaluwarsa.
-    // Redirect ke login untuk otentikasi ulang.
-    // Untuk kesalahan lain, log dan kembalikan data kosong agar UI tidak rusak.
-    console.error("Gagal mengambil data dasbor:", err.message);
-    return json({ siswa: [], guru: [], ruang: [], error: err.message });
+  // Default nilai kosong
+  let siswa: Siswa[] = [];
+  let ruang: RuangKelas[] = [];
+  let guru: Guru[] = [];
+
+  // Optional: kumpulkan error per bagian
+  const errors: Record<string, string> = {};
+
+  if (siswaResult.status === "fulfilled") {
+    siswa = siswaResult.value.data.data || [];
+  } else {
+    const err = siswaResult.reason as AxiosError;
+    console.error("Gagal mengambil siswa:", err.message);
+    errors.siswa = err.message;
   }
+
+  if (ruangResult.status === "fulfilled") {
+    ruang = ruangResult.value.data.data || [];
+  } else {
+    const err = ruangResult.reason as AxiosError;
+    console.error("Gagal mengambil ruang:", err.message);
+    errors.ruang = err.message;
+  }
+
+  if (guruResult.status === "fulfilled") {
+    guru = guruResult.value.data.data || [];
+  } else {
+    const err = guruResult.reason as AxiosError;
+    console.error("Gagal mengambil guru:", err.message);
+    errors.guru = err.message;
+  }
+
+  return json({ siswa, ruang, guru, errors });
 }
 
 // Komponen Index() Anda tetap sama, tidak perlu diubah.

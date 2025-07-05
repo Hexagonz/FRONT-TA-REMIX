@@ -1,10 +1,14 @@
 import { json, MetaFunction } from "@remix-run/node";
 import { LoaderFunctionArgs } from "@remix-run/node";
-import { Outlet, useLoaderData, useLocation, useMatches } from "@remix-run/react";
+import {
+  Outlet,
+  useLoaderData,
+  useLocation,
+  useMatches,
+} from "@remix-run/react";
 
 import Sidebar from "~/components/ui/dashboard";
 import { getUserFromSession } from "~/services/session.services";
-
 
 export const meta: MetaFunction = () => {
   return [{ title: "Kelola User | Presenta" }];
@@ -12,9 +16,12 @@ export const meta: MetaFunction = () => {
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await getUserFromSession(request);
-  
+
   if (!user || user.role !== "super_admin") {
-    throw json({ message: "Unauthorized" }, { status: 403 });
+    throw new Response("Forbidden", {
+      statusText: "Akses Ditolak",
+      status: 403,
+    });
   }
 
   return json({ user });

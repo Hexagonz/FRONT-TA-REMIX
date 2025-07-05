@@ -42,7 +42,7 @@ const formSchema = z.object({
 export async function action({ request }: ActionFunctionArgs) {
   try {
     const user = await authenticator.authenticate("user-pass", request);
-    const { access_token, refresh_token, role } = user;
+    const { access_token, name, refresh_token, role, username } = user;
 
     const session = await sessionStorage.getSession(
       request.headers.get("cookie")
@@ -51,6 +51,8 @@ export async function action({ request }: ActionFunctionArgs) {
     session.set("access_token", access_token);
     session.set("refresh_token", refresh_token);
     session.set("role", role);
+    session.set("username", username);
+    session.set("name", name);
 
     let redirectTo = "/login";
     switch (role) {
@@ -63,7 +65,7 @@ export async function action({ request }: ActionFunctionArgs) {
         redirectTo = "/absensi";
         break;
       default:
-        redirectTo = "/login"; 
+        redirectTo = "/login";
     }
 
     return redirect(redirectTo, {
@@ -96,6 +98,7 @@ export async function loader({ request }: ActionFunctionArgs) {
   let role = session.get("role");
   switch (role) {
     case "admin":
+    case "super_admin":
       return redirect("/dashboard");
     case "siswa":
     case "guru":

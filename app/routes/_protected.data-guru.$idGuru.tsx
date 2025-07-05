@@ -181,7 +181,7 @@ export default function EditGuru() {
   });
 
   return (
-    <div className="*:mx-2 flex justify-center">
+    <div className="*:mx-2 flex justify-center items-center h-5/6">
       <RemixForm {...form}>
         <form
           method="post"

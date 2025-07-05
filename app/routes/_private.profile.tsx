@@ -11,13 +11,16 @@ export const meta: MetaFunction = () => {
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
   const role = session.get("role");
-
-  return json({ role });
+  const username = session.get("username");
+  const name = session.get("name")
+  return json({ role,username, name });
 }
+
+export type ProfileLoaderType = typeof loader;
 
 export default function Profile() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100">
+    <div className="flex-col items-center justify-center bg-slate-100">
       <Outlet />
       <BottomNavbar />
     </div>

@@ -22,7 +22,7 @@ export default function Sidebar({ pathNow, role }: { pathNow: string; role: stri
     { path: "/data-ruangan", label: "Data Ruangan", Icon: HomeSmile },
     { path: "/data-guru", label: "Data Guru", Icon: Archive },
     { path: "/data-jurusan", label: "Data Jurusan", Icon: AcademicHat },
-    { path: "/data-kelas", label: "Data Kelas", Icon: Presentation },
+    // { path: "/data-kelas", label: "Data Kelas", Icon: Presentation },
     { path: "/mata-pelajaran", label: "Mata Pelajaran", Icon: Book },
     ...(role == "super_admin" ? [{ path: "/kelola-user", label: "Kelola User", Icon: User }] : [])
   ];

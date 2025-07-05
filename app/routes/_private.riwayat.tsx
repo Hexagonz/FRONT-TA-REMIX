@@ -17,7 +17,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function Riwayat() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100">
+    <div className="min-h-screen flex flex-col items-center bg-slate-100">
       <Outlet />
       <BottomNavbar />
     </div>

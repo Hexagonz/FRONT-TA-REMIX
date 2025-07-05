@@ -21,6 +21,8 @@ authenticator.use(
       access_token: data.data.accses_token,
       refresh_token: data.data.refresh_token,
       role: data.data.role,
+      username: data.data.username,
+      name: data.data.name
     };
   }),
   "user-pass"

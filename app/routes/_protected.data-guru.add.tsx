@@ -166,7 +166,7 @@ export default function AddGuru() {
       <RemixForm {...form}>
         <form
           method="post"
-          className="bg-white space-y-5 w-[40%] px-4 rounded-xl shadow-md mt-5 pb-2"
+          className="bg-white space-y-5 w-[40%] px-4 rounded-xl shadow-md mt-5 pb-8"
           onSubmit={form.handleSubmit(onSubmit)}
         >
           <div className="flex items-start pt-6 gap-x-20">

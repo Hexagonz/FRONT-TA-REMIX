@@ -22,16 +22,29 @@ import {
   useNavigate,
 } from "@remix-run/react";
 import { json, LoaderFunctionArgs } from "@remix-run/node";
-import {axios} from "~/services/axios.services";
+import { axios } from "~/services/axios.services";
 import { sessionStorage } from "~/services/session.services";
 import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { Bounce, toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { PaginationControls } from "~/components/ui/pagination-controls";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  let session = await sessionStorage.getSession(request.headers.get("cookie"));
+  const session = await sessionStorage.getSession(
+    request.headers.get("cookie")
+  );
   const token = session.get("access_token");
 
   try {
@@ -46,17 +59,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
       data,
     });
   } catch (error) {
-    console.log(error);
     const err = error as AxiosError;
-
-    console.error(
-      "Gagal fetch Gurus:",
-      err.response?.status,
-      err.response?.data
-    );
 
     return json(
       {
+        token,
         status: false,
         message: err.response?.data || "Terjadi kesalahan saat fetch Guru",
         data: err.response?.data,
@@ -74,6 +81,8 @@ export default function Index() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -100,7 +109,9 @@ export default function Index() {
           ? "Sukses Menambahkan Guru Baru"
           : data === "2"
           ? "Sukses Mengedit Data Guru"
-          : "Sukses Menghapus Data Guru",
+          : data === "3"
+          ? "Sukses Menghapus Data Guru"
+          : "Sukses Import Data Guru",
         {
           position: "top-center",
           autoClose: 2997,
@@ -132,6 +143,37 @@ export default function Index() {
       console.error("Gagal hapus:", error);
     }
   };
+  const handleImport = async (file: File) => {
+    console.log(token);
+    if (
+      !file ||
+      file.type !==
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ) {
+      toast.error("File harus format .xlsx", { autoClose: 2500 });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      await axios.post("/guru/import", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      navigate("/data-guru?success=4", { replace: true });
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Gagal mengimpor data guru",
+        {
+          autoClose: 2500,
+        }
+      );
+    }
+  };
+
   return (
     <div className="*:mx-2">
       <Navbar title="Kelola Data Guru" />
@@ -142,15 +184,83 @@ export default function Index() {
             className="bg-white rounded-none w-60"
             placeholder="Cari Guru"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setSelectedFile(file);
+                setShowConfirm(true); // Tampilkan alert konfirmasi
+              }
+            }}
           />
         </div>
-        <Link to="/data-guru/add">
-          <Button className="mr-4 bg-[#00BBA7] hover:bg-[#00BBA7AA] *:font-bold">
-            <Plus className="stroke-[2.5]" /> Tambah Data Guru
-          </Button>
-        </Link>
+        <div className="flex gap-x-2 mr-4">
+          {/* Import Excel Button + Dialog */}
+          {/* Tombol Import + Input File */}
+          <form
+            encType="multipart/form-data"
+            className="relative inline-block overflow-hidden"
+          >
+            <Button className="bg-[#0077cc] hover:bg-[#005fa3]">
+              📁 Import Excel
+            </Button>
+            <input
+              type="file"
+              accept=".xlsx"
+              key={Date.now()}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                if (
+                  file.type !==
+                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ) {
+                  toast.error("File harus format .xlsx", {
+                    autoClose: 2500,
+                  });
+                  return;
+                }
+
+                setSelectedFile(file);
+                setShowConfirm(true); // Baru setelah file valid, buka dialog
+              }}
+              className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-10"
+            />
+          </form>
+          <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Konfirmasi Import</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Yakin ingin mengimpor data guru dari file{" "}
+                  <span className="font-semibold">{selectedFile?.name}</span>?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (selectedFile) {
+                      handleImport(selectedFile);
+                      setShowConfirm(false);
+                    }
+                  }}
+                  className="bg-[#00BBA7] hover:bg-[#00BBA7aa]"
+                >
+                  Import
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Link to="/data-guru/add">
+            <Button className="bg-[#00BBA7] hover:bg-[#00BBA7AA] *:font-bold">
+              <Plus className="stroke-[2.5]" /> Tambah Data Guru
+            </Button>
+          </Link>
+        </div>
       </div>
+
       <div className="w-[97%] bg-white h-max rounded-lg shadow-sm my-5 *:text-[#5D5D5D] ">
         <Table>
           {filteredGurus.length == 0 ? (

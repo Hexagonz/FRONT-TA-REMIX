@@ -70,8 +70,8 @@ export interface Siswa {
 
 interface Foto {
   data: {
-    images: string[]
-  }
+    images: string[];
+  };
 }
 export interface Guru {
   id_guru: number;
@@ -102,4 +102,10 @@ export interface RuangKelas {
   nomor_ruang: number;
   id_jurusan: number;
   jurusan: Jurusan;
+}
+
+export interface ProfileLoaderData {
+  role: string;
+  username: string;
+  name: string;
 }
