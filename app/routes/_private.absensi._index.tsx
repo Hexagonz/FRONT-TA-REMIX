@@ -1,201 +1,153 @@
-// app/routes/index.tsx
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
-import { getSession } from "~/services/session.services"; 
-import { useEffect, useRef, useState } from "react";
+import { json, LoaderFunctionArgs } from "@remix-run/node";
+import { Link, useLoaderData } from "@remix-run/react";
+import { useEffect, useMemo, useState } from "react";
+import { axios } from "~/services/axios.services";
+import { getSession } from "~/services/session.services";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const session = await getSession(request.headers.get("cookie"));
+  const session = await getSession(request.headers.get("Cookie"));
+  const token = session.get("access_token");
   const username = session.get("username");
 
-  if (!username) {
-    return json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const { data } = await axios.get("/presensi", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-  return json({ nim: username });
+    const filter = data.data.filter(
+      (item: any) => item.siswa.nisn === username
+    );
+
+    return json({ data: filter, token });
+  } catch (error: any) {
+    console.log(error.response);
+    return json({ data: error?.data || [] });
+  }
 }
 
 export default function Index() {
-  const { nim } = useLoaderData<{ nim: string }>();
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const socketRef = useRef<WebSocket | null>(null);
-  const scanAnimationRef = useRef<number | null>(null);
-
-  const [status, setStatus] = useState("Menunggu...");
-  const [isSent, setIsSent] = useState(false);
-  const [isWsOpen, setIsWsOpen] = useState(false);
-  const [isCameraReady, setIsCameraReady] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-
-  const speak = (text: string) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "id-ID";
-    window.speechSynthesis.speak(utterance);
-  };
+  const { data } = useLoaderData<typeof loader>();
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
-      .then((stream) => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.onloadedmetadata = () => {
-            if (stream.active) setIsCameraReady(true);
-          };
-        }
-      })
-      .catch(() => {
-        setStatus("❌ Akses kamera ditolak");
-        setIsCameraReady(false);
-      });
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const socket = new WebSocket("ws://localhost:3001");
-    socketRef.current = socket;
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  };
+  const formatted = new Intl.DateTimeFormat("id-ID", options).format(now);
 
-    socket.onopen = () => {
-      setIsWsOpen(true);
-      setStatus("✅ Terhubung ke server");
-    };
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setStatus("🔍 Memindai wajah...");
-      setIsScanning(true);
-      startScanEffect();
-
-      setTimeout(() => {
-        if (data.result && data.result !== "Tidak Dikenal") {
-          setStatus(`✅ ${data.result}`);
-          speak(`Absensi berhasil. ${data.result}`);
-        } else if (data.result === "Tidak Dikenal") {
-          setIsSent(false);
-          speak("Tidak Dikenal");
-          setStatus("❌ Tidak Dikenal");
-        } else if (data.error) {
-          setStatus(`❌ ${data.error}`);
-          speak(`Terjadi kesalahan. ${data.error}`);
-          setIsSent(false);
-        }
-
-        stopScanEffect();
-        setIsScanning(false);
-      }, 1500);
-    };
-
-    socket.onerror = () => {
-      setStatus("⚠️ Gagal terhubung ke server");
-      setIsWsOpen(false);
-    };
-
-    socket.onclose = () => {
-      setIsWsOpen(false);
-    };
-
-    return () => {
-      socket.close();
-    };
-  }, []);
-
-  const sendFrame = () => {
-    if (socketRef.current?.readyState === WebSocket.OPEN && videoRef.current) {
-      const canvas = document.createElement("canvas");
-      canvas.width = 320;
-      canvas.height = 240;
-      const ctx = canvas.getContext("2d");
-      ctx?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg");
-
-      socketRef.current.send(JSON.stringify({ image: dataUrl, nim }));
-      setStatus("📤 Mengirim gambar...");
-      setIsSent(true);
-    } else {
-      setStatus("⚠️ WebSocket atau Kamera belum siap.");
-    }
+  const formatTime = (isoTime: string) => {
+    return isoTime.substring(11, 16).replace(":", ".");
   };
 
-  const startScanEffect = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    const height = canvas?.height || 240;
-    const width = canvas?.width || 320;
-    let y = 0;
-    const speed = 3;
+  function gabungTanggalDenganJam(tanggal: Date, waktuISO: string) {
+    const jam = new Date(waktuISO);
+    const hasil = new Date(tanggal);
+    hasil.setHours(jam.getUTCHours());
+    hasil.setMinutes(jam.getUTCMinutes());
+    hasil.setSeconds(0);
+    hasil.setMilliseconds(0);
+    return hasil;
+  }
+  const hariSekarang = new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+  }).format(now);
 
-    const animate = () => {
-      if (!ctx) return;
-      ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
-      ctx.fillRect(0, 0, width, height);
-
-      ctx.strokeStyle = "#00FF00";
-      ctx.shadowColor = "#00FF00";
-      ctx.shadowBlur = 8;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-
-      y += speed;
-      if (y > height) y = 0;
-      scanAnimationRef.current = requestAnimationFrame(animate);
-    };
-
-    animate();
-  };
-
-  const stopScanEffect = () => {
-    if (scanAnimationRef.current) cancelAnimationFrame(scanAnimationRef.current);
-    const ctx = canvasRef.current?.getContext("2d");
-    ctx?.clearRect(0, 0, 320, 240);
-  };
-
-  const isReady = isWsOpen && isCameraReady && !isSent && !isScanning;
+  const jadwalHariIni = useMemo(() => {
+    return data.filter((item: any) => item.jadwal.hari === hariSekarang);
+  }, [data, now]);
 
   return (
-    <div className="flex flex-col items-center justify-center mb-20">
-      <div className="bg-white rounded-xl shadow-2xl pb-10 flex flex-col items-center gap-y-10">
-        <div className="relative w-[320px] h-[240px]">
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            width={320}
-            height={240}
-            className="rounded-xl rounded-b-none shadow border absolute top-0 left-0 z-0"
-          />
-          <canvas
-            ref={canvasRef}
-            width={320}
-            height={240}
-            className="absolute top-0 left-0 z-10 pointer-events-none"
-          />
-        </div>
-        <div className="flex flex-col gap-y-5 items-center">
-          <button
-            onClick={sendFrame}
-            disabled={!isReady}
-            className={`px-4 py-2 bg-white text-slate-500 outline outline-[1px] outline-offset-2 outline-slate-300 rounded transition-all font-bold ${
-              isReady ? "hover:bg-slate-400 hover:text-white" : "opacity-50"
-            }`}
-          >
-            {isScanning
-              ? "Memindai Wajah..."
-              : isSent
-              ? "Gambar Terkirim"
-              : isWsOpen
-              ? isCameraReady
-                ? "Absen Sekarang"
-                : "Menunggu Kamera..."
-              : "Menyambung..."}
-          </button>
-          <p className="text-sm text-slate-500">{status}</p>
-        </div>
+    <div className="w-full h-screen pb-20 overflow-y-scroll [&::-webkit-scrollbar]:hidden scrollbar-hide">
+      <div className="flex justify-between items-center">
+        <h1 className="font-bold text-[#5D5D5D] ml-4 mt-4">
+          Presensi Hari Ini
+        </h1>
+        <h1 className="font-bold text-[#5D5D5D] mr-4 mt-4 text-xs">
+          {formatted}
+        </h1>
       </div>
+
+      {jadwalHariIni.length === 0 ? (
+        <div className="text-center text-gray-500 mt-10 font-medium">
+          Tidak ada jadwal hari ini
+        </div>
+      ) : (
+        <div className="mt-4">
+          <h2 className="ml-6 font-semibold text-[#444]">
+            Hari {hariSekarang}
+          </h2>
+
+          {jadwalHariIni.map((presensi: any) => {
+            const jadwal = presensi.jadwal;
+            const jamMulai = gabungTanggalDenganJam(now, jadwal.jam_mulai);
+            const jamSelesai = gabungTanggalDenganJam(now, jadwal.jam_selesai);
+
+            const presensiAktif = now >= jamMulai && now <= jamSelesai;
+
+            return (
+              <div
+                key={presensi.id_presensi}
+                className="w-11/12 my-3 mx-auto rounded-md p-4 shadow-md bg-white relative"
+              >
+                <h1 className="font-bold text-[#333]">
+                  {jadwal.guru.nama_guru} | {jadwal.guru.mapel.deskripsi}
+                </h1>
+
+                <p className="text-sm font-medium mt-1">
+                  Kelas: {jadwal.kelas.kelas_romawi}{" "}
+                  {presensi.siswa.jurusan.nama_jurusan}{" "}
+                  {jadwal.ruang.nomor_ruang}
+                </p>
+
+                {/* Status Badge */}
+                <div className="mt-1">
+                  <span className="text-sm text-gray-700 mr-1">Status:</span>
+                  <span
+                    className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                      presensi.progres === "idle"
+                        ? "bg-red-100 text-red-700"
+                        : presensi.progres === "pending"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-green-100 text-green-700"
+                    }`}
+                  >
+                    {presensi.progres === "idle"
+                      ? "Belum Absen"
+                      : presensi.progres === "pending"
+                      ? "Menunggu"
+                      : "Sudah Absen"}
+                  </span>
+                </div>
+
+                <p className="text-xs text-gray-700 mt-1">
+                  Pukul: {formatTime(jadwal.jam_mulai)} -{" "}
+                  {formatTime(jadwal.jam_selesai)} WIB
+                </p>
+
+                {presensiAktif && !presensi.status && (
+                  <Link
+                    to={`/absensi/start?id=${jadwal.id_jadwal}`}
+                    className="absolute bottom-3 right-3 px-4 py-2 bg-green-500 text-white text-sm rounded-md font-medium hover:bg-green-600 transition"
+                  >
+                    Absen
+                  </Link>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

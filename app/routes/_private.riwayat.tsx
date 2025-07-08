@@ -1,6 +1,6 @@
 import { CalendarCheck, Home, User } from "@mynaui/icons-react";
 import { MetaFunction, LoaderFunctionArgs, json } from "@remix-run/node";
-import { Link, Outlet, useLocation } from "@remix-run/react";
+import { Link, Outlet, useLoaderData, useLocation } from "@remix-run/react";
 import BottomNavbar from "~/components/ui/bottom-navbar";
 import { getSession } from "~/services/session.services";
 
@@ -16,10 +16,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function Riwayat() {
+  const { role } = useLoaderData<typeof loader>();
   return (
     <div className="min-h-screen flex flex-col items-center bg-slate-100">
       <Outlet />
-      <BottomNavbar />
+      <BottomNavbar role={role} />
     </div>
   );
 }

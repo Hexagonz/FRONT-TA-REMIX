@@ -60,9 +60,12 @@ export async function action({ request }: ActionFunctionArgs) {
       case "super_admin":
         redirectTo = "/dashboard";
         break;
-      case "guru":
+
       case "siswa":
         redirectTo = "/absensi";
+        break;
+      case "guru":
+        redirectTo = "/presensi";
         break;
       default:
         redirectTo = "/login";
@@ -101,8 +104,9 @@ export async function loader({ request }: ActionFunctionArgs) {
     case "super_admin":
       return redirect("/dashboard");
     case "siswa":
-    case "guru":
       return redirect("/absensi");
+    case "guru":
+      return redirect("/presensi");
   }
   return json({ user });
 }

@@ -1,12 +1,12 @@
 import { CalendarCheck, Home, User } from "@mynaui/icons-react";
 import { Link, useLocation } from "@remix-run/react";
 
-export default function BottomNavbar() {
+export default function BottomNavbar({role}:{role:string}) {
   const location = useLocation();
   const pathNow = location.pathname;
 
   const navItems = [
-    { path: "/absensi", Icon: Home },
+    { path: role == "guru" ? "/presensi" : "/absensi", Icon: Home },
     { path: "/riwayat", Icon: CalendarCheck },
     { path: "/profile", Icon: User },
   ];

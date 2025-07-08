@@ -9,15 +9,20 @@ import {
   useRouteError,
 } from "@remix-run/react";
 import "./tailwind.css";
+import { LinksFunction, MetaFunction } from "@remix-run/node";
 
-export function links() {
-  return [
-    {
-      rel: "stylesheet",
-      href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
-    },
-  ];
-}
+export const links: LinksFunction = () => [
+  {
+    rel: "stylesheet",
+    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+  },
+];
+
+// ⬇️ Meta tag default
+export const meta: MetaFunction = () => [
+  { title: "Presensi App" },
+  { name: "viewport", content: "width=device-width, initial-scale=1" },
+];
 // export your middleware as array of functions that Remix will call
 // wrap middleware in serverOnly$ to prevent it from being bundled in the browser
 // since remix doesn't know about middleware yet

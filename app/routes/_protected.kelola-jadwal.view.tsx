@@ -77,7 +77,10 @@ export default function ViewJadwal() {
         withCredentials: true,
       });
 
-      navigate(-1);
+      navigate(
+        `/kelola-jadwal/view?kelas=${kelas}&ruang=${ruang}&jurusan=${jurusan}&success=delete`,
+        { replace: true }
+      );
     } catch (error) {
       console.error("Gagal menghapus jadwal:", error);
     }
@@ -87,11 +90,7 @@ export default function ViewJadwal() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-x-4">
           <Link
-            to="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate(-1);
-            }}
+            to="/kelola-jadwal"
             className="text-[#5D5D5D] hover:text-[#00BBA7]"
           >
             <ArrowLeft className="stroke-[2.5]" />
@@ -117,8 +116,14 @@ export default function ViewJadwal() {
         return (
           <Card key={hari} className="mb-6 shadow-md border border-gray-200">
             <CardContent className="pt-6">
-              <h2 className="text-lg font-semibold text-[#5D5D5D] mb-4">
+              <h2 className="text-lg font-semibold text-[#5D5D5D] mb-4 flex justify-between items-center">
                 Hari {hari}
+                <Link
+                  to={`/kelola-jadwal/tambah-hari?kelas=${kelas}&jurusan=${jurusan}&ruang=${ruang}&hari=${hari}`}
+                  className="bg-[#00BBA7] text-white px-3 py-1 rounded-full text-sm hover:bg-[#00BBA7aa]"
+                >
+                  + Tambah Jadwal Hari Ini
+                </Link>
               </h2>
               <Table>
                 <TableHeader>

@@ -60,7 +60,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
   }
 
-  // Set-Cookie baru jika session diperbarui
   const headers = new Headers();
   headers.append("Set-Cookie", await commitSession(session));
 
